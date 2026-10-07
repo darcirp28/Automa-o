@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carteira Elite · dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--tx:#1d1f23;--mut:#6b7280;--bd:#e4e2dc;--ac:#1f6f5c;--rk:#c24141;--ex:#1f6f5c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161a;--card:#1d2026;--tx:#eceef1;--mut:#9aa1ad;--bd:#2b2f37;--ac:#4cc3a3;--rk:#ef7676;--ex:#4cc3a3}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1080px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em}h2{font-size:20px;margin:44px 0 6px}h3{font-size:15px;margin:0}h3.sp{margin-top:26px}
+.lead{color:var(--mut);margin:0 0 16px}.sub{color:var(--mut);font-size:12.5px;margin:2px 0 10px}
+.loader{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 18px;margin:14px 0 18px;display:grid;gap:10px}
+.loader .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.loader input[type=text]{flex:1;min-width:240px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.loader button,.loader label.btn{padding:8px 14px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+.loader label.btn{background:transparent;color:var(--ac)}.loader input[type=file]{display:none}.loader select{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.loader small{color:var(--mut)}#status{font-size:12.5px;color:var(--mut)}#status.err{color:var(--rk)}#status.ok{color:var(--ac)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}.kpi b{display:block;font-size:21px}.kpi span{color:var(--mut);font-size:12.5px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px 18px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px;margin-top:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin-top:12px}
+.pw{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}.pw svg{width:150px;height:150px;flex:none}
+.leg{list-style:none;margin:0;padding:0;flex:1;min-width:175px;font-size:12.5px}.leg li{display:grid;grid-template-columns:12px 1fr auto;gap:2px 8px;align-items:center;padding:2px 0}
+.leg em{grid-column:2/4;color:var(--mut);font-style:normal;font-size:11.5px;margin-top:-3px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:14px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}tr:last-child td{border-bottom:0}.mut{color:var(--mut)}
+table.mx td.hm{text-align:center;font-variant-numeric:tabular-nums}table.mx td.hm span,table.mx th span{display:block;font-size:10.5px;color:var(--mut);font-weight:400}table.mx th{text-align:center}table.mx th:first-child,table.mx td:first-child{text-align:left}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;margin-bottom:6px}.t-e{background:color-mix(in srgb,var(--ex) 16%,transparent);color:var(--ex)}
+.note{font-size:12.5px;color:var(--mut);margin-top:10px}
+.sb{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center;margin:7px 0;font-size:12.5px}.sl small{color:var(--mut);margin-left:4px}
+.sbar{display:flex;height:26px;border-radius:7px;overflow:hidden;background:var(--bd)}.sbar i{display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-size:11.5px;font-weight:600;overflow:hidden;white-space:nowrap;min-width:0}
+.bl{display:grid;gap:5px;font-size:12.5px}.blr{display:grid;grid-template-columns:170px 1fr auto;gap:8px;align-items:center}.blb{height:16px;background:var(--bd);border-radius:5px;overflow:hidden}.blb i{display:block;height:100%}
+a{color:var(--ac)}
+.ck{cursor:pointer}td.ck:hover,li.ck:hover,.blr.ck:hover{outline:2px solid var(--ac);outline-offset:-2px}path.ck:hover{opacity:.8}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);padding:0;width:min(1040px,94vw);max-height:86vh}dialog::backdrop{background:rgba(0,0,0,.45)}
+.mh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}.mh h3{font-size:16px}.mh button{border:1px solid var(--bd);background:transparent;color:var(--tx);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+#mbody{overflow:auto;max-height:calc(86vh - 60px)}#mbody table{font-size:12.5px}.sm{display:block;font-size:11px}
+.hint{font-size:12.5px;color:var(--mut);margin:6px 0 0}
+.sb .sl{min-width:0}@media (max-width:600px){.two{grid-template-columns:1fr}.sb{grid-template-columns:1fr}.blr{grid-template-columns:1fr}.sl{font-weight:600}}
+</style>
+</head>
+<body>
+<main>
+<h1 id="title">Carteira Elite</h1>
+<p class="lead">Análise por IF, faixa Elite e segmento · gerada no navegador a partir das Tabelas Cx e Meta</p>
+<div class="loader">
+  <div class="row"><input type="text" id="gurl" placeholder="Link da Planilha Google com as abas Tabela Cx e Tabela Meta"><button id="gload">Carregar da Google Sheets</button><label class="btn">Subir arquivo .xlsx<input type="file" id="file" accept=".xlsx,.xls,.csv"></label></div>
+  <div class="row"><label for="csm">Carteira (CSM):</label><select id="csm"><option>—</option></select><small>O arquivo subido aqui vale só para o seu navegador. Para todos verem, suba o dados.xlsx no repositório.</small></div>
+  <p class="hint">Clique em qualquer célula, fatia ou barra para ver a lista de clientes daquele recorte.</p>
+  <div id="status">Cole o link da planilha ou suba o arquivo exportado do Elite para começar.</div>
+</div>
+<div class="kpis" id="kpis"></div>
+<div id="body"><p class="note">Aguardando dados.</p></div>
+<dialog id="modal"><div class="mh"><h3 id="mtitle"></h3><button onclick="document.getElementById('modal').close()">Fechar</button></div><div id="mbody"></div></dialog>
+</main>
+<script>
+// Fonte de dados para todos os visitantes, nesta ordem:
+// 1) DEFAULT_SHEET: link de uma Planilha Google compartilhada (deixe vazio para não usar)
+// 2) DEFAULT_FILES: arquivos .xlsx hospedados no próprio repositório, ao lado do index.html
+const DEFAULT_SHEET = '';
+const DEFAULT_FILES = ['dados.xlsx'];
+</script>
+<script>
+// ===== Motor de dados: transforma as abas "Tabela Cx" e "Tabela Meta" em contas tratadas =====
+const FAIXAS = {1:[10000,15000],2:[15000,20000],3:[20000,30000],4:[30000,50000],5:[50000,80000],6:[80000,100000],7:[100000,150000]};
+const FAIXA_LABEL = {0:'Sem faixa na tag',1:'Faixa 1 · 10–15 mil',2:'Faixa 2 · 15–20 mil',3:'Faixa 3 · 20–30 mil',4:'Faixa 4 · 30–50 mil',5:'Faixa 5 · 50–80 mil',6:'Faixa 6 · 80–100 mil',7:'Faixa 7 · 100–150 mil+'};
+const IF_LABEL = {IF0:'IF0 · Cliente churnado',IF1:'IF1 · Verbalizou cancelamento',IF2:'IF2 · Alto atrito',IF3:'IF3 · Recuperação',IF4:'IF4 · Relac. saudável',IF5:'IF5 · Potencial de expansão',IF6:'IF6',"Sem IF":'Sem IF'};
+const IF_ORDER = ['IF0','IF1','IF2','IF3','IF4','IF5','IF6','Sem IF'];
+const ECOM_CX = ['tray','nuvemshop','lojaintegrada','shopify','woocommerce','bagy','yampi','vtex','wix','magento','blinglojavirtual','wbuy','mercos','linx'];
+const LOG_MKT = ['mercadoenvios','logisticashopee','logisticatiktok','amazondba','magaluentregas'];
+const RISCOS = [['Preço','preço'],['Produto','produto'],['Suporte','suporte'],['Funcionalidade','funcionalidade'],['Armazenamento','armazenamento'],['Instabilidade','instabilidade'],['Lentidão','lentid'],['Plano','plano'],['Integrações','integra'],['CSM','csm']];
+
+const S = v => (v == null ? '' : String(v)).trim();
+const N = v => { if (v == null || v === '') return null; if (typeof v === 'number') return isNaN(v) ? null : v; const x = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(x) ? null : x; };
+const Nraw = v => { if (v == null || v === '') return null; if (typeof v === 'number') return isNaN(v) ? null : v; const x = parseFloat(String(v).replace(',','.')); return isNaN(x) ? null : x; };
+const has = (t, k) => S(t).toLowerCase().includes(k.toLowerCase());
+const idKey = v => { const s = S(v); if (/^\d+(\.0+)?$/.test(s)) return String(parseInt(s, 10)); if (/e\+/i.test(s)) return String(Math.round(Number(s))); return s; };
+
+// Recebe arrays de linhas (array de arrays) de cada aba; localiza a linha de cabeçalho.
+function toRecords(rows) {
+  let hi = rows.findIndex(r => r && r.some(c => /id empresa/i.test(S(c))));
+  if (hi < 0) hi = 0;
+  const hdr = rows[hi].map(c => S(c).replace(/^Tabela (Cx|Meta)\s+/i, ''));
+  const out = [];
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i]; if (!r || S(r[0]) === '') continue;
+    const o = {}; hdr.forEach((h, j) => { if (h) o[h] = r[j]; }); out.push(o);
+  }
+  return { hdr, rows: out };
+}
+function col(obj, ...names) { for (const n of names) { const k = Object.keys(obj).find(k => k.toLowerCase() === n.toLowerCase()); if (k !== undefined) return obj[k]; } return undefined; }
+
+function detectSheet(rows) {
+  const flat = rows.slice(0, 3).flat().map(c => S(c).toLowerCase());
+  if (flat.some(c => c === 'carteira') && flat.some(c => c === 'tags')) return 'cx';
+  if (flat.some(c => c === 'csm') && flat.some(c => c.startsWith('gmv'))) return 'meta';
+  return null;
+}
+
+function buildAccounts(cxRows, metaRows) {
+  const cx = toRecords(cxRows).rows, meta = toRecords(metaRows || []).rows;
+  const mIdx = new Map(); meta.forEach(m => mIdx.set(idKey(col(m, 'ID Empresa')), m));
+  return cx.map(r => {
+    const id = idKey(col(r, 'ID Empresa')); const m = mIdx.get(id) || null;
+    const tags = S(col(r, 'Tags'));
+    let IF = 'Sem IF'; for (const k of ['IF0','IF1','IF2','IF3','IF4','IF5','IF6']) if (tags.includes(k)) { IF = k; break; }
+    let fx = 0; for (let i = 1; i <= 7; i++) if (tags.includes('Faixa ' + i)) { fx = i; break; }
+    const mediaCx = N(col(r, 'Média de pedidos'));
+    const media = m ? N(col(m, 'Media ultimos 3 meses')) : mediaCx;
+    const gmv = m ? N(col(m, 'GMV Último Mês')) : N(col(r, 'GMV'));
+    const pedUlt = m ? N(col(m, 'Pedidos Último Mês')) : null;
+    let pos = 'Sem faixa na tag', acima = null;
+    if (fx && media != null) { const [lo, hi] = FAIXAS[fx]; pos = media > hi ? 'Acima do intervalo' : media < lo ? 'Abaixo do intervalo' : 'Dentro do intervalo'; if (media > hi) acima = media / hi - 1; }
+    const mkts = m ? S(col(m, 'Marketplaces Configurados')) : '';
+    const nMkt = mkts ? mkts.split(',').filter(x => x.trim()).length : 0;
+    const ecomTxt = m ? S(col(m, 'E-commerces Configurados')) : (ECOM_CX.some(e => S(col(r, 'Integrações ativas')).toLowerCase().includes(e)) ? '(integração Cx)' : '');
+    const temEcom = ecomTxt ? 1 : 0;
+    const logs = m ? S(col(m, 'Logísticas Configuradas')) : '';
+    const logList = logs ? logs.split(',').map(x => x.trim()).filter(Boolean) : [];
+    const logPropria = logList.some(l => !LOG_MKT.includes(l.toLowerCase())) ? 1 : 0;
+    const cobertura = !temEcom ? 'Sem e-commerce (oferta: Bling Loja Virtual)' : !m ? 'E-commerce sem dado de logística (só na Cx)' : !logList.length ? 'E-commerce sem logística (oferta: Bling Envios)' : logPropria ? 'E-commerce com logística além da de marketplace' : 'E-commerce só com logística de marketplace (oferta: Bling Envios)';
+    const motivoCx = S(col(r, 'Motivo do risco')); const motivo = motivoCx || (m ? S(col(m, 'Motivo do Risco')) : '');
+    const temMotivo = motivo && !has(motivo, 'sem risco') && motivo !== 'Não encontrado' ? 1 : 0;
+    const riscos = {}; RISCOS.forEach(([k, key]) => riscos[k] = has(motivo, key) ? 1 : 0);
+    const api = m ? Nraw(col(m, 'Saúde da API (% 2xx)')) : null;
+    const arm = m ? Nraw(col(m, '% Armazenamento Utilizado')) : null;
+    const sim = k => m ? (S(col(m, k)).toLowerCase() === 'sim' ? 1 : 0) : null;
+    const cert = m ? (['não','nao',''].includes(S(col(m, 'Comprou Certificado pelo Bling')).toLowerCase()) ? 0 : 1) : null;
+    const seg = S(col(r, 'Segmento')) || 'Sem segmento na Cx';
+    return {
+      id, razao: S(col(r, 'Razão Social')), nome: S(col(r, 'Fantasia')) || S(col(r, 'Razão Social')),
+      csm: S(col(r, 'Carteira')), statusCx: S(col(r, 'Status')), seg, grupo: S(col(r, 'Grupo')), tags, IF, ifLabel: IF_LABEL[IF] || IF,
+      fx, fxLabel: FAIXA_LABEL[fx], fxMin: fx ? FAIXAS[fx][0] : null, fxMax: fx ? FAIXAS[fx][1] : null,
+      naMeta: m ? 1 : 0, gmv, pedUlt, media, pedMkt: m ? N(col(m, 'Pedido importado de marketplace')) : null, pedApi: m ? N(col(m, 'Pedido API')) : null,
+      pos, acima, mkts, nMkt, ecomTxt, temEcom, logs, nLog: logList.length, logPropria, cobertura,
+      motivo, temMotivo, riscos,
+      queda: (m && media && pedUlt != null) ? (pedUlt < 0.75 * media ? 1 : 0) : null,
+      api, apiBaixa: api == null ? null : (api < 90 ? 1 : 0), usaApi: sim('Usou API'),
+      arm, storage: (has(tags, 'STORAGE') || (arm != null && arm > 85)) ? 1 : 0,
+      baixoEng: has(tags, 'Baixo engajamento') ? 1 : 0,
+      inad: (has(tags, 'inadimplente') || (m && S(col(m, 'Situação')) === 'Inadimplente')) ? 1 : 0,
+      faixaIncorreta: has(tags, 'faixa incorreta') ? 1 : 0, aproximando: has(tags, 'Aproximando Faixa') ? 1 : 0, semTermo: has(tags, 'Sem termo') ? 1 : 0,
+      contaDigital: sim('Tem Bling Conta Digital'), cert, checkout: sim('Utilizou Checkout'), pdv: sim('Utilizou PDV'), meuNegocio: sim('Utilizou Meu Negócio'),
+      acimaFaixa: pos === 'Sem faixa na tag' ? null : (pos === 'Acima do intervalo' ? 1 : 0),
+      abaixoFaixa: pos === 'Sem faixa na tag' ? null : (pos === 'Abaixo do intervalo' ? 1 : 0),
+      situacaoMeta: m ? S(col(m, 'Situação')) : '', link: S(col(r, 'Link Admin de Empresas')),
+    };
+  });
+}
+// ===== Interface =====
+const $ = s => document.querySelector(s);
+const fmtInt = n => (n == null ? '–' : Math.round(n).toLocaleString('pt-BR'));
+const fmtMi = n => (n == null ? '–' : 'R$ ' + (n / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi');
+const pct = (a, b) => (b ? (100 * a / b).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '–');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const IF_COLOR = { IF0: '#8a8f99', IF1: '#c24141', IF2: '#d97a2b', IF3: '#d4a824', IF4: '#1f6f5c', IF5: '#2d6fcc', IF6: '#7b4fb3', 'Sem IF': '#9aa1ad' };
+const FX_COLOR = ['#9aa1ad', '#b9d9cf', '#8dc3b3', '#5fa893', '#3b8a74', '#2a7461', '#1f6f5c', '#154d40'];
+const POS_COLOR = { 'Acima do intervalo': '#1f6f5c', 'Dentro do intervalo': '#8dc3b3', 'Abaixo do intervalo': '#c24141', 'Sem faixa na tag': '#9aa1ad' };
+const hue = i => `hsl(${(i * 47) % 360},58%,${[48, 54, 60][i % 3]}%)`;
+
+let ALL = [], ACC = [], META = { fonte: '', data: '' };
+let LISTS = []; // registro de listas clicáveis: índice -> {title, acc}
+function reg(title, acc) { LISTS.push({ title, acc }); return LISTS.length - 1; }
+function openList(i) {
+  const L = LISTS[i]; if (!L) return;
+  const rows = [...L.acc].sort((a, b) => (b.gmv || 0) - (a.gmv || 0));
+  $('#mtitle').textContent = `${L.title} · ${rows.length} conta${rows.length === 1 ? '' : 's'}`;
+  $('#mbody').innerHTML = rows.length ? `<table><thead><tr><th>Empresa</th><th>CSM</th><th>IF</th><th>Faixa</th><th>Segmento (Cx)</th><th>GMV último mês</th><th>Pedidos (média 3m)</th><th>Posição vs faixa</th><th>Motivo do risco</th></tr></thead><tbody>${rows.map(a => `<tr><td>${nomeLink(a)}<span class="mut sm">${esc(a.razao !== a.nome ? a.razao : '')}</span></td><td>${esc(a.csm)}</td><td>${a.IF}</td><td>${a.fx ? 'Faixa ' + a.fx : '–'}</td><td>${esc(a.seg)}</td><td>${fmtMi(a.gmv)}</td><td>${fmtInt(a.media)}</td><td>${esc(a.pos)}</td><td>${esc(a.motivo) || '–'}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">Nenhuma conta neste recorte.</p>';
+  $('#modal').showModal();
+}
+document.addEventListener('click', e => { const t = e.target.closest('[data-l]'); if (t) openList(+t.dataset.l); });
+
+function groupBy(arr, f) { const m = new Map(); arr.forEach(a => { const k = f(a); if (!m.has(k)) m.set(k, []); m.get(k).push(a); }); return m; }
+const sum = (arr, f) => arr.reduce((s, a) => s + (f(a) || 0), 0);
+const cnt = (arr, f) => arr.filter(a => f(a) != null).length;
+const avg = (arr, f) => { const v = arr.map(f).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const median = (arr, f) => { const v = arr.map(f).filter(x => x != null).sort((a, b) => a - b); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+
+// --- gráficos ---
+function pie(items, label) {
+  const total = sum(items, i => i.value); let a0 = -Math.PI / 2, paths = '';
+  items.forEach(it => { if (!it.value) return; const a1 = a0 + 2 * Math.PI * it.value / total; const big = a1 - a0 > Math.PI ? 1 : 0; const p = a => [90 + 80 * Math.cos(a), 90 + 80 * Math.sin(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); paths += `<path ${it.acc ? `data-l="${reg(label + ' · ' + it.label, it.acc)}" class="ck"` : ''} d="M90,90 L${x0.toFixed(2)},${y0.toFixed(2)} A80,80 0 ${big} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z" fill="${it.color}" stroke="var(--card)" stroke-width="2"><title>${esc(it.label)}: ${esc(it.text)}</title></path>`; a0 = a1; });
+  if (!total) paths = '<circle cx="90" cy="90" r="80" fill="var(--bd)"/>';
+  return `<div class="pw"><svg viewBox="0 0 180 180" role="img" aria-label="${esc(label)}">${paths}</svg><ul class="leg">${items.map(it => `<li ${it.acc ? `data-l="${reg(label + ' · ' + it.label, it.acc)}" class="ck"` : ''}><span class="dot" style="background:${it.color}"></span><span>${esc(it.label)}</span><b>${pct(it.value, total)}</b><em>${esc(it.text)}</em></li>`).join('')}</ul></div>`;
+}
+function card(title, sub, body, cls = '') { return `<div class="card ${cls}"><h3>${title}</h3>${sub ? `<p class="sub">${sub}</p>` : ''}${body}</div>`; }
+function stack(rows) {
+  return rows.map(r => { const n = sum(r.parts, p => p.count); return `<div class="sb"><div class="sl">${esc(r.label)}<small>n=${n}</small></div><div class="sbar">${r.parts.filter(p => p.count).map(p => `<i ${p.acc ? `data-l="${reg(r.label + ' · ' + p.label, p.acc)}" class="ck"` : ''} style="flex:${p.count};background:${p.color}" title="${esc(p.label)}: ${p.count} · ${pct(p.count, n)}">${p.count / n < 0.12 ? p.count : p.count + ' · ' + pct(p.count, n)}</i>`).join('')}</div><div class="mut">${r.extra || ''}</div></div>`; }).join('');
+}
+function barList(items, fmt) { const mx = Math.max(...items.map(i => i.value), 1); return `<div class="bl">${items.map(i => `<div class="blr ${i.acc ? 'ck' : ''}" ${i.acc ? `data-l="${reg(i.label, i.acc)}"` : ''}><span>${esc(i.label)}</span><div class="blb"><i style="width:${100 * i.value / mx}%;background:${i.color}"></i></div><b>${fmt(i.value)}</b></div>`).join('')}</div>`; }
+function heat(groups, indicators) {
+  // groups: [{label, acc}], indicators: [{name, f}] with f(acc) -> 1/0/null
+  const th = groups.map(g => `<th>${esc(g.short || g.label)}<span>n=${g.acc.length}</span></th>`).join('');
+  const rows = indicators.map(ind => { const cells = [...groups, { label: 'Total', acc: ACC }].map(g => { const n = cnt(g.acc, ind.f), x = sum(g.acc, ind.f); if (!n) return '<td class="hm"><span>–</span></td>'; const p = x / n; const li = reg(`${ind.name} · ${g.short || g.label}`, g.acc.filter(a => ind.f(a) === 1)); return `<td class="hm ck" data-l="${li}" style="background:rgba(31,111,92,${(0.08 + 0.55 * p).toFixed(2)})">${x}/${n}<span>${pct(x, n)}</span></td>`; }).join(''); return `<tr><td>${esc(ind.name)}</td>${cells}</tr>`; }).join('');
+  return `<div class="tw"><table class="mx"><thead><tr><th>Indicador</th>${th}<th>Total<span>n=${ACC.length}</span></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function matrix(rowGroups, colGroups, rowLabel) {
+  const th = colGroups.map(c => `<th>${esc(c.label)}</th>`).join('');
+  const rows = rowGroups.map(r => { const cells = colGroups.map(c => { const inter = r.acc.filter(a => c.acc.includes(a)), k = inter.length; return k ? `<td class="hm ck" data-l="${reg(r.label + ' × ' + c.label, inter)}" style="background:rgba(31,111,92,${(0.08 + 0.55 * k / r.acc.length).toFixed(2)})">${k}<span>${pct(k, r.acc.length)}</span></td>` : '<td class="hm"></td>'; }).join(''); return `<tr><td>${esc(r.label)}</td>${cells}<td class="hm ck" data-l="${reg(r.label, r.acc)}"><b>${r.acc.length}</b><span>${pct(r.acc.length, ACC.length)}</span></td></tr>`; }).join('');
+  return `<div class="tw"><table class="mx"><thead><tr><th>${rowLabel}</th>${th}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function table(cols, rows) { return `<div class="tw"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length}" class="mut">Nenhuma conta neste critério.</td></tr>`}</tbody></table></div>`; }
+const nomeLink = a => a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.nome)}</a>` : esc(a.nome);
+
+const RISK_IND = [
+  { name: 'Pedidos −25% vs. média 3m', f: a => a.queda }, { name: 'Saúde da API < 90%', f: a => a.apiBaixa }, { name: 'Preço citado como risco', f: a => a.riscos['Preço'] },
+  { name: 'Armazenamento >85% ou tag storage', f: a => a.storage }, { name: 'Baixo engajamento (tag)', f: a => a.baixoEng }, { name: 'Inadimplente', f: a => a.inad }, { name: 'Volume abaixo da faixa contratada', f: a => a.abaixoFaixa }];
+const EXP_IND = [
+  { name: 'Volume acima da faixa contratada', f: a => a.acimaFaixa }, { name: 'Pagamento de faixa incorreta (tag)', f: a => a.faixaIncorreta }, { name: 'Aproximando próxima faixa Elite', f: a => a.aproximando },
+  { name: 'Sem Bling Conta Digital', f: a => a.contaDigital == null ? null : 1 - a.contaDigital }, { name: 'Sem certificado pelo Bling', f: a => a.cert == null ? null : 1 - a.cert }, { name: 'Sem Checkout', f: a => a.checkout == null ? null : 1 - a.checkout },
+  { name: 'Sem PDV', f: a => a.pdv == null ? null : 1 - a.pdv }, { name: 'Sem Meu Negócio', f: a => a.meuNegocio == null ? null : 1 - a.meuNegocio }, { name: 'Sem uso de API', f: a => a.usaApi == null ? null : 1 - a.usaApi },
+  { name: 'Sem e-commerce → Bling Loja Virtual', f: a => 1 - a.temEcom }, { name: 'E-commerce sem nenhuma logística → Bling Envios', f: a => a.temEcom && a.naMeta ? (a.nLog ? 0 : 1) : null },
+  { name: 'E-commerce só com logística de marketplace → Bling Envios', f: a => a.temEcom && a.naMeta ? (a.nLog && !a.logPropria ? 1 : 0) : null }];
+
+function render() {
+  LISTS = [];
+  const csm = $('#csm').value; ACC = csm === '__all__' ? ALL : ALL.filter(a => a.csm === csm);
+  $('#title').textContent = 'Carteira Elite · ' + (csm === '__all__' ? 'todas as carteiras' : 'CSM ' + csm);
+  const gmvT = sum(ACC, a => a.gmv), pedT = sum(ACC, a => a.media), comp = ACC.filter(a => a.acimaFaixa != null);
+  const segs = groupBy(ACC, a => a.seg), nSeg = [...segs.keys()].filter(k => k !== 'Sem segmento na Cx').length;
+  $('#kpis').innerHTML = [[fmtInt(ACC.length), 'empresas'], [fmtMi(gmvT), 'GMV último mês'], [fmtInt(pedT), 'pedidos/mês (média 3 meses)'], [nSeg, `segmentos na Cx (+${(segs.get('Sem segmento na Cx') || []).length} sem segmento)`], [`${sum(comp, a => a.acimaFaixa)}/${comp.length}`, 'contas com volume acima da faixa'], [`${sum(ACC, a => a.temMotivo)}/${ACC.length}`, 'contas com motivo de risco']].map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
+  if (!ACC.length) { $('#body').innerHTML = '<p class="note">Nenhuma empresa para este filtro.</p>'; return; }
+
+  const ifGroups = IF_ORDER.map(k => ({ key: k, short: k, label: IF_LABEL[k], acc: ACC.filter(a => a.IF === k) })).filter(g => g.acc.length || ['IF1', 'IF2', 'IF3', 'IF4', 'IF5', 'IF6', 'Sem IF'].includes(g.key));
+  const ifPresent = ifGroups.filter(g => g.acc.length);
+  const fxGroups = [1, 2, 3, 4, 5, 6, 7, 0].map(k => ({ key: k, label: FAIXA_LABEL[k], acc: ACC.filter(a => a.fx === k) })).filter(g => g.acc.length);
+  const segOrder = [...segs.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])); const si = segOrder.findIndex(s => s[0] === 'Sem segmento na Cx'); if (si >= 0) segOrder.push(...segOrder.splice(si, 1));
+  const segGroups = segOrder.map(([k, v], i) => ({ key: k, label: k, acc: v, color: k === 'Sem segmento na Cx' ? '#9aa1ad' : hue(i) }));
+  const posKeys = ['Acima do intervalo', 'Dentro do intervalo', 'Abaixo do intervalo', 'Sem faixa na tag'];
+  const posParts = acc => posKeys.slice(0, 3).map(k => ({ label: k, count: acc.filter(a => a.pos === k).length, color: POS_COLOR[k], acc: acc.filter(a => a.pos === k) }));
+  const semFx = acc => { const k = acc.filter(a => a.pos === 'Sem faixa na tag').length; return k ? `+${k} sem faixa` : ''; };
+  let h = '';
+
+  // Visão geral
+  h += `<h2>Visão geral por segmento</h2><p class="lead">Segmento conforme o campo da Tabela Cx.</p><div class="grid">` + card('Segmentos da carteira (Cx)', `% das ${ACC.length} contas`, pie(segGroups.map(g => ({ label: g.label, value: g.acc.length, color: g.color, text: g.acc.length + ' emp.', acc: g.acc })), 'Segmentos')) + '</div>';
+
+  // 1. IF
+  const ifPie = (title, sub, f, fmt) => card(title, sub, pie(ifGroups.map(g => ({ label: g.label, value: sum(g.acc, f), color: IF_COLOR[g.key], text: fmt(sum(g.acc, f)), acc: g.acc })), title));
+  h += `<h2>1. Distribuição por IF</h2><div class="grid">` + ifPie('Empresas por IF', `% das ${ACC.length} contas`, a => 1, v => v + ' emp.') + ifPie('GMV último mês por IF', '% do GMV', a => a.gmv, fmtMi) + ifPie('Pedidos (média 3 meses) por IF', '% do volume médio de pedidos', a => a.media, v => fmtInt(v) + ' ped.') + '</div>';
+  h += `<h3 class="sp">Média de pedidos (3 meses) × intervalo da faixa</h3><p class="lead">A tag de faixa traz o intervalo de pedidos (ex.: "Faixa 3 · 20 a 30 mil"). A média de pedidos dos 3 meses é comparada com esse intervalo.</p><div class="grid">` +
+    card('Média de pedidos × intervalo da faixa', `${sum(comp, a => a.acimaFaixa)} das ${comp.length} contas comparáveis estão acima do teto`, pie(posKeys.map(k => ({ label: k, value: ACC.filter(a => a.pos === k).length, color: POS_COLOR[k], text: ACC.filter(a => a.pos === k).length + ' emp.', acc: ACC.filter(a => a.pos === k) })), 'Posição vs faixa')) + '</div><div class="two">' +
+    card('Por IF', 'Contas comparáveis (com faixa na tag)', stack(ifPresent.map(g => ({ label: g.label, parts: posParts(g.acc), extra: semFx(g.acc) })))) +
+    card('Por faixa', 'Contas comparáveis', stack(fxGroups.filter(g => g.key).map(g => ({ label: g.label, parts: posParts(g.acc) })))) + '</div>';
+  const acima = ACC.filter(a => a.acimaFaixa === 1).sort((a, b) => b.acima - a.acima);
+  h += `<h3 class="sp">Contas acima do intervalo da faixa (${acima.length})</h3>` + table(['Empresa', 'IF', 'Faixa', 'Média 3 meses', 'Acima do teto', 'Só marketplace', 'Tag de faixa incorreta'], acima.map(a => [nomeLink(a), a.IF, esc(a.fxLabel), fmtInt(a.media), `<b>+${Math.round(100 * a.acima)}%</b>`, a.pedMkt == null ? '–' : fmtInt(a.pedMkt), a.faixaIncorreta ? 'Sim' : 'Não']));
+  const abaixo = ACC.filter(a => a.abaixoFaixa === 1);
+  if (abaixo.length) h += `<p class="note">Abaixo do intervalo (${abaixo.length}): ${abaixo.map(a => `${esc(a.nome)} (${fmtInt(a.media)} pedidos, faixa ${a.fx})`).join(', ')}.</p>`;
+
+  // 2. Comparativo
+  h += `<h2>2. Comparativo entre os IFs</h2>` + table(['IF', 'Empresas', 'GMV', 'GMV médio', 'Pedidos (mediana)', 'Marketplaces (média)', 'Armazenamento médio', 'Saúde API média', 'Usa API', 'Segmentos distintos'],
+    ifGroups.map(g => g.acc.length ? [esc(g.label), g.acc.length, fmtMi(sum(g.acc, a => a.gmv)), fmtMi(avg(g.acc, a => a.gmv)), fmtInt(median(g.acc, a => a.media)), (avg(g.acc, a => a.naMeta ? a.nMkt : null) ?? 0).toFixed(1), avg(g.acc, a => a.arm) == null ? '–' : Math.round(avg(g.acc, a => a.arm)) + '%', avg(g.acc, a => a.api) == null ? '–' : Math.round(avg(g.acc, a => a.api)) + '%', avg(g.acc, a => a.usaApi) == null ? '–' : Math.round(100 * avg(g.acc, a => a.usaApi)) + '%', new Set(g.acc.map(a => a.seg)).size] : [esc(g.label), 0, `<span class="mut" colspan="8">Nenhuma empresa da carteira com esse IF</span>`, '', '', '', '', '', '', '']));
+  h += `<p class="note">Marketplaces, armazenamento, saúde da API e uso de API só existem na Tabela Meta e cobrem as ${sum(ACC, a => a.naMeta)} contas dessa tabela.</p>`;
+
+  // 3. Riscos
+  h += `<h2>3. Riscos por IF</h2><p class="lead">Cada célula mostra quantas contas do IF têm o indicador sobre quantas têm dado para ele.</p>` + heat(ifPresent, RISK_IND);
+  const motivoPie = g => { const items = RISCOS.map(([k], i) => ({ label: k, value: sum(g.acc, a => a.riscos[k]), color: hue(i + 3), text: sum(g.acc, a => a.riscos[k]) + ' citações', acc: g.acc.filter(a => a.riscos[k]) })).filter(i => i.value).sort((a, b) => b.value - a.value); return items.length ? card('Motivos de risco · ' + g.key, `${g.acc.length} contas · uma conta pode citar mais de um motivo`, pie(items, 'Motivos ' + g.key)) : ''; };
+  const topIfs = ifPresent.filter(g => sum(g.acc, a => a.temMotivo) > 0).sort((a, b) => sum(b.acc, x => x.temMotivo) - sum(a.acc, x => x.temMotivo));
+  h += `<div class="grid">${topIfs.slice(0, 2).map(motivoPie).join('')}</div>`;
+  const rest = topIfs.slice(2); if (rest.length) h += `<p class="note">${rest.map(g => `${g.key} cita ${RISCOS.filter(([k]) => sum(g.acc, a => a.riscos[k])).map(([k]) => `${k} (${sum(g.acc, a => a.riscos[k])})`).join(', ')}`).join('. ')}.</p>`;
+
+  // 4. Expansão
+  h += `<h2>4. Oportunidades de expansão por IF</h2><p class="lead">A faixa Elite é de volume de pedidos. ${sum(comp, a => a.acimaFaixa)} de ${comp.length} contas têm volume acima do teto da faixa.</p>` + heat(ifPresent, EXP_IND);
+  const cobKeys = ['Sem e-commerce (oferta: Bling Loja Virtual)', 'E-commerce com logística além da de marketplace', 'E-commerce só com logística de marketplace (oferta: Bling Envios)', 'E-commerce sem logística (oferta: Bling Envios)', 'E-commerce sem dado de logística (só na Cx)'];
+  const cobColor = ['#1f6f5c', '#8dc3b3', '#d4a824', '#c24141', '#9aa1ad'];
+  const semEcom = ACC.filter(a => !a.temEcom).sort((a, b) => (b.gmv || 0) - (a.gmv || 0));
+  h += `<h3 class="sp">Bling Loja Virtual e Bling Envios</h3><div class="grid">` + card('Cobertura de e-commerce e logística', `% das ${ACC.length} contas`, pie(cobKeys.map((k, i) => ({ label: k, value: ACC.filter(a => a.cobertura === k).length, color: cobColor[i], text: ACC.filter(a => a.cobertura === k).length + ' emp.', acc: ACC.filter(a => a.cobertura === k) })).filter(i => i.value), 'Cobertura')) + '</div>';
+  h += `<h3 class="sp"><span class="tag t-e">Bling Loja Virtual</span><br>${semEcom.length} contas sem e-commerce configurado · ${pct(sum(semEcom, a => a.gmv), gmvT)} do GMV</h3>`;
+  h += `<p class="note">Por IF: ${ifPresent.map(g => `${semEcom.filter(a => a.IF === g.key).length} em ${g.key}`).join(', ')}. ${semEcom.filter(a => a.inad).length} inadimplente(s), ${semEcom.filter(a => a.riscos['Preço']).length} cita(m) preço como risco. Melhores candidatas: contas com 5 ou mais marketplaces.</p>`;
+  const obs = a => [a.aproximando ? 'aproximando faixa' : '', a.riscos['Preço'] ? 'cita preço' : '', a.inad ? 'inadimplente' : ''].filter(Boolean).join(', ') || '–';
+  h += table(['Empresa', 'IF', 'Faixa', 'Segmento (Cx)', 'GMV último mês', 'Marketplaces', 'Obs.'], semEcom.map(a => [nomeLink(a), a.IF, a.fx ? 'Faixa ' + a.fx : '–', esc(a.seg), fmtMi(a.gmv), a.naMeta ? a.nMkt : '–', obs(a)]));
+  const envios = ACC.filter(a => a.cobertura.includes('Bling Envios'));
+  h += `<h3 class="sp"><span class="tag t-e">Bling Envios</span><br>${envios.length ? envios.length + ' conta(s) candidata(s)' : 'Nenhuma conta com e-commerce está sem logística própria'}</h3>` + table(['Empresa', 'IF', 'Faixa', 'Segmento (Cx)', 'GMV último mês', 'E-commerce', 'Logísticas configuradas'], envios.map(a => [nomeLink(a), a.IF, a.fx ? 'Faixa ' + a.fx : '–', esc(a.seg), fmtMi(a.gmv), esc(a.ecomTxt), esc(a.logs) || '<span class="mut">nenhuma</span>']));
+
+  // 6. Faixas
+  const fxPie = (title, sub, f, fmt) => card(title, sub, pie(fxGroups.map(g => ({ label: g.label, value: sum(g.acc, f), color: FX_COLOR[g.key], text: fmt(sum(g.acc, f)), acc: g.acc })), title));
+  h += `<h2>6. Faixas Elite</h2><p class="lead">Faixa lida da tag (ex.: "Faixa 3 · 20 a 30 mil", que é volume de pedidos).</p><div class="grid">` + fxPie('Empresas por faixa Elite', `% das ${ACC.length} contas`, a => 1, v => v + ' emp.') + fxPie('GMV último mês por faixa', '% do GMV da carteira', a => a.gmv, fmtMi) + fxPie('Pedidos (média 3 meses) por faixa', '% do volume médio', a => a.media, v => fmtInt(v) + ' ped.') + '</div>';
+  h += `<h3 class="sp">Faixa × IF</h3>` + matrix(fxGroups, ifPresent.map(g => ({ label: g.key, acc: g.acc })), 'Faixa');
+  h += `<h3 class="sp">Riscos por faixa</h3>` + heat(fxGroups, RISK_IND);
+  h += `<h3 class="sp">Oportunidades de expansão por faixa</h3>` + heat(fxGroups, EXP_IND);
+  const maisComum = groups => table(['Grupo', 'Emp.', 'Contas com motivo', 'Motivos mais comuns', 'Indicador de risco mais frequente'], groups.map(g => { const ms = RISCOS.map(([k]) => [k, sum(g.acc, a => a.riscos[k])]).filter(x => x[1]).sort((a, b) => b[1] - a[1]); const ind = RISK_IND.map(i => [i.name, sum(g.acc, i.f)]).filter(x => x[1]).sort((a, b) => b[1] - a[1]); return [esc(g.label), g.acc.length, sum(g.acc, a => a.temMotivo), ms.slice(0, 2).map(x => `${x[0]} (${x[1]})`).join(' · ') || '–', ind.length ? `${ind[0][0]} (${ind[0][1]})` : '–']; }));
+  h += `<h3 class="sp">Risco mais comum por faixa</h3>` + maisComum(fxGroups);
+  h += `<h3 class="sp">Risco mais comum por segmento</h3>` + maisComum(segGroups);
+
+  // 7. Segmentos
+  h += `<h2>7. Segmentos (campo Segmento da Tabela Cx)</h2><div class="grid">` + card('Empresas por segmento (Cx)', '', barList(segGroups.map(g => ({ label: g.label, value: g.acc.length, color: g.color, acc: g.acc })), v => v + ' emp.')) + card('GMV por segmento (Cx)', '', barList([...segGroups].sort((a, b) => sum(b.acc, x => x.gmv) - sum(a.acc, x => x.gmv)).map(g => ({ label: g.label, value: sum(g.acc, a => a.gmv), color: g.color, acc: g.acc })), fmtMi)) + '</div>';
+  h += `<h3 class="sp">Segmento × IF</h3>` + matrix(segGroups, ifPresent.map(g => ({ label: g.key, acc: g.acc })), 'Segmento');
+  h += `<h3 class="sp">Indicadores por segmento</h3>` + table(['Segmento', 'Emp.', 'GMV', 'Pedidos (média 3m)', 'Cita preço', 'Acima da faixa', 'Sem e-commerce', 'API < 90%', 'Saúde API média'], [...segGroups].sort((a, b) => sum(b.acc, x => x.gmv) - sum(a.acc, x => x.gmv)).map(g => [esc(g.label), g.acc.length, fmtMi(sum(g.acc, a => a.gmv)), fmtInt(sum(g.acc, a => a.media)), sum(g.acc, a => a.riscos['Preço']), `${sum(g.acc, a => a.acimaFaixa)}/${cnt(g.acc, a => a.acimaFaixa)}`, sum(g.acc, a => 1 - a.temEcom), `${sum(g.acc, a => a.apiBaixa)}/${cnt(g.acc, a => a.apiBaixa)}`, avg(g.acc, a => a.api) == null ? '–' : Math.round(avg(g.acc, a => a.api)) + '%']));
+
+  // 9. Grupos
+  const grupos = [...groupBy(ACC.filter(a => a.grupo), a => a.grupo).entries()].sort((a, b) => b[1].length - a[1].length);
+  h += `<h2>9. Grupos econômicos</h2><p class="lead">${grupos.length} grupos, ${sum(grupos, g => g[1].length)} empresas com grupo preenchido na Cx.</p>` + table(['Grupo', 'Empresa', 'IF', 'Faixa', 'Segmento (Cx)', 'GMV último mês', 'Pedidos (média 3m)'], grupos.flatMap(([g, acc]) => acc.map((a, i) => [i ? '' : `<b>${esc(g)}</b>`, nomeLink(a), a.IF, a.fx ? 'Faixa ' + a.fx : '–', esc(a.seg), fmtMi(a.gmv), fmtInt(a.media)])));
+  $('#body').innerHTML = h;
+}
+
+// --- carga de dados ---
+function loadWorkbook(wb, fonte) {
+  let cx = null, meta = null;
+  wb.SheetNames.forEach(n => { const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' }); const t = detectSheet(rows); if (t === 'cx') cx = rows; if (t === 'meta') meta = rows; });
+  if (!cx) throw new Error('Não encontrei a aba "Tabela Cx" (precisa ter as colunas Carteira e Tags).');
+  ALL = buildAccounts(cx, meta);
+  const csms = [...new Set(ALL.map(a => a.csm).filter(Boolean))].sort();
+  const sel = $('#csm'), prev = (ALL.length && csms.includes(sel.value)) ? sel.value : (localStorage.getItem('csm') || 'Bruno');
+  sel.innerHTML = csms.map(c => `<option>${esc(c)}</option>`).join('') + '<option value="__all__">Todas as carteiras</option>';
+  sel.value = csms.includes(prev) ? prev : (prev === '__all__' ? '__all__' : csms[0]);
+  $('#status').textContent = `${fonte} · ${ALL.length} empresas · ${meta ? 'Cx + Meta' : 'só Cx (sem Tabela Meta: GMV, API e e-commerce ficam limitados)'} · carregado ${new Date().toLocaleString('pt-BR')}`;
+  $('#status').className = 'ok'; render();
+}
+function sheetId(url) { const m = String(url).match(/\/d\/([a-zA-Z0-9_-]{20,})/) || String(url).match(/^([a-zA-Z0-9_-]{20,})$/); return m ? m[1] : null; }
+async function loadGoogle(url) {
+  const id = sheetId(url); if (!id) throw new Error('Link inválido. Cole o link completo da planilha Google (…/spreadsheets/d/ID/…).');
+  const wb = XLSX.utils.book_new(); let ok = 0;
+  for (const sheet of ['Tabela Cx', 'Tabela Meta', 'Cx', 'Meta']) {
+    try {
+      const r = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_=${Date.now()}`);
+      if (!r.ok) continue; const txt = await r.text(); if (!txt || txt.startsWith('<') || txt.length < 50) continue;
+      const w = XLSX.read(txt, { type: 'string' }); XLSX.utils.book_append_sheet(wb, w.Sheets[w.SheetNames[0]], sheet); ok++;
+    } catch (e) { /* tenta a próxima aba */ }
+  }
+  if (!ok) throw new Error('Não consegui ler a planilha. Verifique: (1) o arquivo é uma Planilha Google (não .xlsx no Drive — abra e use Arquivo › Salvar como Planilhas Google); (2) está compartilhado como "Qualquer pessoa com o link pode ver"; (3) as abas se chamam "Tabela Cx" e "Tabela Meta".');
+  loadWorkbook(wb, 'Google Sheets');
+}
+function fail(e) { $('#status').textContent = e.message || String(e); $('#status').className = 'err'; }
+
+async function loadRepoFile(name) {
+  const r = await fetch(name + '?_=' + Date.now()); if (!r.ok) throw new Error('sem ' + name);
+  loadWorkbook(XLSX.read(await r.arrayBuffer(), { type: 'array' }), name + ' (do repositório)');
+}
+document.addEventListener('DOMContentLoaded', async () => {
+  const p = new URLSearchParams(location.search);
+  $('#gload').onclick = () => { const u = $('#gurl').value.trim(); if (!u) return; localStorage.setItem('sheetUrl', u); $('#status').textContent = 'Carregando…'; $('#status').className = ''; loadGoogle(u).catch(fail); };
+  $('#file').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = ev => { try { loadWorkbook(XLSX.read(ev.target.result, { type: 'array' }), f.name + ' (só neste navegador)'); } catch (err) { fail(err); } }; rd.readAsArrayBuffer(f); };
+  $('#csm').onchange = () => { localStorage.setItem('csm', $('#csm').value); render(); };
+  // Ordem: ?sheet= na URL › DEFAULT_SHEET › dados.xlsx no repositório › último link usado neste navegador
+  const fixed = p.get('sheet') || (typeof DEFAULT_SHEET !== 'undefined' && DEFAULT_SHEET) || '';
+  if (fixed) { $('#gurl').value = fixed; $('#status').textContent = 'Carregando…'; loadGoogle(fixed).catch(fail); return; }
+  const files = (typeof DEFAULT_FILES !== 'undefined' ? DEFAULT_FILES : ['dados.xlsx']);
+  for (const f of files) { try { $('#status').textContent = 'Carregando ' + f + '…'; await loadRepoFile(f); return; } catch (e) { /* tenta o próximo */ } }
+  const saved = localStorage.getItem('sheetUrl');
+  if (saved) { $('#gurl').value = saved; $('#status').textContent = 'Carregando…'; loadGoogle(saved).catch(fail); }
+  else { $('#status').textContent = 'Nenhum dados.xlsx no repositório. Cole o link da planilha ou suba o arquivo para ver os gráficos.'; $('#status').className = ''; }
+});
+</script></body></html>
