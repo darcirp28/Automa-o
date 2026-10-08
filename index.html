@@ -7,20 +7,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#F8FAFC;--card:#FFFFFF;--card2:#F0F3F7;--tx:#495769;--tx2:#1F2A3B;--mut:#66768C;--bd:#E4E9F0;--bd2:#CCD5E0;--ac:#34AD61;--ac2:#288F4E;--acbg:#DCFAE6;--rk:#F05143;--yl:#F5A60A;--ex:#34AD61;--ink:#FFFFFF;--sh:0 2px 4px 0 rgba(73,87,105,.16),0 1px 2px -1px rgba(73,87,105,.16)}
+:root{--bg:#F8FAFC;--card:#FFFFFF;--card2:#F0F3F7;--hover:#F8FAFC;--tx:#495769;--tx2:#1F2A3B;--mut:#66768C;--bd:#E4E9F0;--bd2:#CCD5E0;--ac:#34AD61;--ac2:#288F4E;--acbg:#DCFAE6;--rk:#F05143;--yl:#F5A60A;--ex:#34AD61;--link:#0EB2E8;--neg-bg:#FFE5E3;--neg-fg:#BA291C;--warn-bg:#FFF1C7;--warn-fg:#A16207;--pos-bg:#DCFAE6;--pos-fg:#1D733C;--input:#FFFFFF;--sh:0 2px 4px 0 rgba(73,87,105,.16),0 1px 2px -1px rgba(73,87,105,.16)}
+:root[data-theme="dark"]{--bg:#18181B;--card:#27272A;--card2:#3F3F46;--hover:#3F3F46;--tx:#E4E4E7;--tx2:#FFFFFF;--mut:#A1A1AA;--bd:#3F3F46;--bd2:#52525B;--ac:#5AC782;--ac2:#34AD61;--acbg:#144728;--rk:#F05143;--yl:#F5A60A;--ex:#5AC782;--link:#41CFFA;--neg-bg:#801D1D;--neg-fg:#FFE5E3;--warn-bg:#713F12;--warn-fg:#FFF1C7;--pos-bg:#355313;--pos-fg:#E9FACD;--input:#3F3F46;--sh:0 0 5px #00000054}
+:root[data-theme="dark"] .topbar img{filter:brightness(1.15)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Inter',Arial,Roboto,Helvetica,sans-serif}
 main{max-width:1080px;margin:0 auto;padding:28px 18px 60px}
 h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em;font-weight:700;color:var(--tx2)}h2{font-size:20px;margin:44px 0 6px;color:var(--tx2);font-weight:700;padding-left:12px;border-left:4px solid var(--ac)}h3{font-size:15px;margin:0;color:var(--tx2)}h3.sp{margin-top:26px}
 .lead{color:var(--mut);margin:0 0 16px}.sub{color:var(--mut);font-size:12.5px;margin:2px 0 10px}
 .loader{background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:var(--sh);padding:14px 18px;margin:14px 0 18px;display:grid;gap:10px}
-.loader .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.loader input[type=text]{flex:1;min-width:240px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:#fff;color:var(--tx);font:inherit}
+.loader .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.loader input[type=text]{flex:1;min-width:240px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}
 .loader button,.loader label.btn{padding:8px 16px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer}.loader button:hover{background:var(--ac2)}
-.loader label.btn{background:#fff;color:var(--ac)}.loader label.btn:hover{background:var(--acbg)}.loader input[type=file]{display:none}.loader select{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.loader label.btn{background:var(--card);color:var(--ac)}.loader label.btn:hover{background:var(--acbg)}.loader input[type=file]{display:none}.loader select{padding:8px 10px;border:1px solid var(--bd2);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}
+#theme{margin-left:auto;background:var(--card);color:var(--tx);border:1px solid var(--bd2);font-weight:500}
 .loader small{color:var(--mut)}#status{font-size:12.5px;color:var(--mut)}#status.err{color:var(--rk)}#status.ok{color:var(--ac)}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:6px}.topbar img{height:40px;flex:none;margin-top:4px}
 .tagline{color:var(--mut);font-size:13px}.tagline b{color:var(--ac2)}
 .pills{height:4px;margin:14px 0 4px;background:linear-gradient(90deg,var(--ac) 0 60%,#12B8A2 60% 80%,#7C5CE6 80%);border-radius:2px}
-.c-red{background:#FFE5E3!important;color:#BA291C;font-weight:600}.c-yel{background:#FFF1C7!important;color:#A16207;font-weight:600}.c-grn{background:#DCFAE6!important;color:#1D733C;font-weight:600}
+.c-red{background:var(--neg-bg)!important;color:var(--neg-fg);font-weight:600}.c-yel{background:var(--warn-bg)!important;color:var(--warn-fg);font-weight:600}.c-grn{background:var(--pos-bg)!important;color:var(--pos-fg);font-weight:600}
 .lg{display:block;font-size:10.5px;color:var(--mut);font-weight:400}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .kpi{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;box-shadow:var(--sh)}.kpi b{display:block;font-size:22px;color:var(--tx2);font-weight:700}.kpi span{color:var(--mut);font-size:12.5px}
@@ -32,18 +35,18 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em;font-weight:700;color:var
 .leg em{grid-column:2/4;color:var(--mut);font-style:normal;font-size:11.5px;margin-top:-3px}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .tw{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:8px;margin-top:10px;box-shadow:var(--sh)}
-table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:500;font-size:12px;background:var(--card2)}tr:hover td{background:#F8FAFC}tr:last-child td{border-bottom:0}.mut{color:var(--mut)}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:500;font-size:12px;background:var(--card2)}tr:hover td{background:var(--hover)}tr:last-child td{border-bottom:0}.mut{color:var(--mut)}
 table.mx td.hm{text-align:center;color:var(--tx2);font-variant-numeric:tabular-nums}table.mx td.hm span,table.mx th span{display:block;font-size:10.5px;color:var(--mut);font-weight:400}table.mx th{text-align:center}table.mx th:first-child,table.mx td:first-child{text-align:left}
 .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:4px;margin-bottom:6px}.t-e{background:var(--acbg);color:var(--ac2)}
 .note{font-size:12.5px;color:var(--mut);margin-top:10px}
 .sb{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center;margin:7px 0;font-size:12.5px}.sl small{color:var(--mut);margin-left:4px}
 .sbar{display:flex;height:26px;border-radius:6px;overflow:hidden;background:var(--card2)}.sbar i{display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-size:11.5px;font-weight:600;overflow:hidden;white-space:nowrap;min-width:0}
 .bl{display:grid;gap:5px;font-size:12.5px}.blr{display:grid;grid-template-columns:170px 1fr auto;gap:8px;align-items:center}.blb{height:14px;background:var(--card2);border-radius:4px;overflow:hidden}.blb i{display:block;height:100%}
-a{color:#0EA5E9}
-.sbar i{color:#fff;text-shadow:0 0 2px rgba(0,0,0,.25)}.wrapc{white-space:normal;display:block;max-width:420px;font-size:12px;color:var(--mut)}
+a{color:var(--link)}
+.sbar i{color:#fff;text-shadow:0 0 2px rgba(0,0,0,.35)}.stat{display:flex;gap:10px;flex-wrap:wrap}.stat .ck{background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;min-width:160px}.stat .ck b{display:block;font-size:20px;color:var(--tx2)}.stat .ck span{font-size:12px;color:var(--mut)}.stat .ck:hover{border-color:var(--ac)}.wrapc{white-space:normal;display:block;max-width:420px;font-size:12px;color:var(--mut)}
 .ck{cursor:pointer}.lk{text-decoration:underline dotted;text-underline-offset:3px}.lk:hover{color:var(--ac2);text-decoration-style:solid}td.ck:hover,li.ck:hover,.blr.ck:hover{outline:2px solid var(--ac);outline-offset:-2px}path.ck:hover{opacity:.8}
 dialog{border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 24px -2px rgba(73,87,105,.16);background:var(--card);color:var(--tx);padding:0;width:min(1040px,94vw);max-height:86vh}dialog::backdrop{background:rgba(0,0,0,.45)}
-.mh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}.mh h3{font-size:16px}.mh button{border:1px solid var(--bd2);background:#fff;color:var(--tx);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.mh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}.mh h3{font-size:16px}.mh button{border:1px solid var(--bd2);background:var(--card);color:var(--tx);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
 #mbody{overflow:auto;max-height:calc(86vh - 60px)}#mbody table{font-size:12.5px}#mbody td.wrap{white-space:normal;min-width:220px;max-width:320px;font-size:11.5px}.sm{display:block;font-size:11px}
 .hint{font-size:12.5px;color:var(--mut);margin:6px 0 0}
 .sb .sl{min-width:0}@media (max-width:600px){.two{grid-template-columns:1fr}.sb{grid-template-columns:1fr}.blr{grid-template-columns:1fr}.sl{font-weight:600}}
@@ -55,7 +58,7 @@ dialog{border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 24px -2px 
 <div class="pills" aria-hidden="true"></div>
 <div class="loader">
   <div class="row"><input type="text" id="gurl" placeholder="Link da Planilha Google com as abas Tabela Cx e Tabela Meta"><button id="gload">Carregar da Google Sheets</button><label class="btn">Subir arquivo .xlsx<input type="file" id="file" accept=".xlsx,.xls,.csv"></label></div>
-  <div class="row"><label for="csm">Carteira (CSM):</label><select id="csm"><option>—</option></select><small>O arquivo subido aqui vale só para o seu navegador. Para todos verem, suba o dados.xlsx no repositório.</small></div>
+  <div class="row"><label for="csm">Carteira (CSM):</label><select id="csm"><option>—</option></select><button id="theme" type="button" title="Alternar tema">🌙 Modo escuro</button><small>O arquivo subido aqui vale só para o seu navegador. Para todos verem, suba o dados.xlsx no repositório.</small></div>
   <p class="hint">Clique em qualquer célula, fatia ou barra para ver a lista de clientes daquele recorte.</p>
   <div id="status">Cole o link da planilha ou suba o arquivo exportado do Elite para começar.</div>
 </div>
@@ -64,6 +67,8 @@ dialog{border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 24px -2px 
 <dialog id="modal"><div class="mh"><h3 id="mtitle"></h3><button onclick="document.getElementById('modal').close()">Fechar</button></div><div id="mbody"></div></dialog>
 </main>
 <script>
+// Tema padrão: 'dark' ou 'light' (o visitante pode alternar; a escolha fica salva no navegador dele)
+const DEFAULT_THEME = 'dark';
 // Fonte de dados para todos os visitantes, nesta ordem:
 // 1) DEFAULT_SHEET: link de uma Planilha Google compartilhada (deixe vazio para não usar)
 // 2) DEFAULT_FILES: arquivos .xlsx hospedados no próprio repositório, ao lado do index.html
@@ -326,7 +331,7 @@ function render() {
     + card('Último login no Bling', `${cnt(ACC, a => a.diasLogin)} contas com dado (Tabela Meta) · ref. ${fmtDate(ref)}`, pie(mkBuckets(a => a.diasLogin, loginCuts), 'Último login'))
     + card('Última interação do CSM', `${cnt(ACC, a => a.diasInteracao)} contas com dado · menor entre "Último contato" e "Dias da última tarefa concluída"`, pie(mkBuckets(a => a.diasInteracao, interCuts), 'Última interação'))
     + '</div>';
-  h += `<h3 class="sp">Contas em Atenção ou Crítico (${criticas.length})</h3>` + table(['Empresa', 'Score', 'IF', 'Faixa', 'MRR', 'GMV último mês', 'Último login', 'Última interação', 'Fatores'], criticas.map(a => [nomeLink(a), `<span class="${scoreCls(a.score)}" style="padding:2px 8px;border-radius:6px">${a.score}</span>`, a.IF, a.fx ? 'Faixa ' + a.fx : '–', fmtMil(a.mrr), fmtMi(a.gmv), fmtDays(a.diasLogin), fmtDays(a.diasInteracao), `<span class="wrapc">${esc(a.penalidades.filter(p => p[1] > 0).map(p => p[0]).join(' · '))}</span>`]));
+  h += `<div class="stat" style="margin-top:12px">${['Crítico', 'Atenção', 'Saudável'].map(k => { const acc = ACC.filter(a => a.banda === k); return `<div class="ck" data-l="${reg('Health Score · ' + k, acc)}"><b style="color:${BAND_COLOR[k]}">${acc.length}</b><span>${k} · clique para ver a lista</span></div>`; }).join('')}</div>`;
 
   // Visão geral
   h += `<h2>Visão geral por segmento</h2><p class="lead">Segmentos da Tabela Cx agrupados (${Object.keys(SEG_GRUPO).length} grupos; o segmento original aparece na lista de clientes).</p><div class="grid">` + card('Segmentos da carteira (agrupados)', `% das ${ACC.length} contas`, pie(segGroups.map(g => ({ label: g.label, value: g.acc.length, color: g.color, text: g.acc.length + ' emp.', acc: g.acc })), 'Segmentos')) + '</div>';
@@ -338,10 +343,8 @@ function render() {
     card('Média de pedidos × intervalo da faixa', `${sum(comp, a => a.acimaFaixa)} das ${comp.length} contas comparáveis estão acima do teto`, pie(posKeys.map(k => ({ label: k, value: ACC.filter(a => a.pos === k).length, color: POS_COLOR[k], text: ACC.filter(a => a.pos === k).length + ' emp.', acc: ACC.filter(a => a.pos === k) })), 'Posição vs faixa')) + '</div><div class="two">' +
     card('Por IF', 'Contas comparáveis (com faixa na tag)', stack(ifPresent.map(g => ({ label: g.label, parts: posParts(g.acc), extra: semFx(g.acc) })))) +
     card('Por faixa', 'Contas comparáveis', stack(fxGroups.filter(g => g.key).map(g => ({ label: g.label, parts: posParts(g.acc) })))) + '</div>';
-  const acima = ACC.filter(a => a.acimaFaixa === 1).sort((a, b) => b.acima - a.acima);
-  h += `<h3 class="sp">Contas acima do intervalo da faixa (${acima.length})</h3>` + table(['Empresa', 'IF', 'Faixa', 'MRR', 'Média 3 meses', 'Acima do teto', 'Só marketplace', 'Tag de faixa incorreta'], acima.map(a => [nomeLink(a), a.IF, esc(a.fxLabel), fmtMil(a.mrr), fmtInt(a.media), `<b>+${Math.round(100 * a.acima)}%</b>`, a.pedMkt == null ? '–' : fmtInt(a.pedMkt), a.faixaIncorreta ? 'Sim' : 'Não']));
-  const abaixo = ACC.filter(a => a.abaixoFaixa === 1);
-  if (abaixo.length) h += `<p class="note">Abaixo do intervalo (${abaixo.length}): ${abaixo.map(a => `${esc(a.nome)} (${fmtInt(a.media)} pedidos, faixa ${a.fx})`).join(', ')}.</p>`;
+  const acima = ACC.filter(a => a.acimaFaixa === 1), abaixo = ACC.filter(a => a.abaixoFaixa === 1);
+  h += `<div class="stat" style="margin-top:12px"><div class="ck" data-l="${reg('Acima do intervalo da faixa', acima)}"><b>${acima.length}</b><span>contas acima do teto da faixa · clique para ver</span></div><div class="ck" data-l="${reg('Abaixo do intervalo da faixa', abaixo)}"><b>${abaixo.length}</b><span>contas abaixo do piso da faixa · clique para ver</span></div><div class="ck" data-l="${reg('Tag de faixa incorreta', ACC.filter(a => a.faixaIncorreta))}"><b>${sum(ACC, a => a.faixaIncorreta)}</b><span>com tag "pagamento de faixa incorreta"</span></div></div>`;
 
   // 2. Comparativo
   h += `<h2>2. Comparativo entre os IFs</h2>` + table(['IF', 'Empresas', 'Score médio', 'GMV', 'GMV médio', 'MRR', 'MRR médio', 'Pedidos (mediana)', 'Tickets 30d (total)', 'Marketplaces (média)', 'Armazenamento médio', 'Saúde API média', 'Usa API', 'Segmentos distintos'],
@@ -361,12 +364,8 @@ function render() {
   const cobColor = ['#34AD61', '#8BE0AA', '#F5A60A', '#F05143', '#97A4B8'];
   const semEcom = ACC.filter(a => !a.temEcom).sort((a, b) => (b.gmv || 0) - (a.gmv || 0));
   h += `<h3 class="sp">Bling Loja Virtual e Bling Envios</h3><div class="grid">` + card('Cobertura de e-commerce e logística', `% das ${ACC.length} contas`, pie(cobKeys.map((k, i) => ({ label: k, value: ACC.filter(a => a.cobertura === k).length, color: cobColor[i], text: ACC.filter(a => a.cobertura === k).length + ' emp.', acc: ACC.filter(a => a.cobertura === k) })).filter(i => i.value), 'Cobertura')) + '</div>';
-  h += `<h3 class="sp"><span class="tag t-e">Bling Loja Virtual</span><br>${semEcom.length} contas sem e-commerce configurado · ${pct(sum(semEcom, a => a.gmv), gmvT)} do GMV</h3>`;
-  h += `<p class="note">Por IF: ${ifPresent.map(g => `${semEcom.filter(a => a.IF === g.key).length} em ${g.key}`).join(', ')}. ${semEcom.filter(a => a.inad).length} inadimplente(s), ${semEcom.filter(a => a.riscos['Preço']).length} cita(m) preço como risco. Melhores candidatas: contas com 5 ou mais marketplaces.</p>`;
-  const obs = a => [a.aproximando ? 'aproximando faixa' : '', a.riscos['Preço'] ? 'cita preço' : '', a.inad ? 'inadimplente' : ''].filter(Boolean).join(', ') || '–';
-  h += table(['Empresa', 'IF', 'Faixa', 'Segmento', 'MRR', 'GMV último mês', 'Marketplaces', 'Obs.'], semEcom.map(a => [nomeLink(a), a.IF, a.fx ? 'Faixa ' + a.fx : '–', esc(a.segGrupo), fmtMil(a.mrr), fmtMi(a.gmv), a.naMeta ? a.nMkt : '–', obs(a)]));
   const envios = ACC.filter(a => a.cobertura.includes('Bling Envios'));
-  h += `<h3 class="sp"><span class="tag t-e">Bling Envios</span><br>${envios.length ? envios.length + ' conta(s) candidata(s)' : 'Nenhuma conta com e-commerce está sem logística própria'}</h3>` + table(['Empresa', 'IF', 'Faixa', 'Segmento (Cx)', 'GMV último mês', 'E-commerce', 'Logísticas configuradas'], envios.map(a => [nomeLink(a), a.IF, a.fx ? 'Faixa ' + a.fx : '–', esc(a.seg), fmtMi(a.gmv), esc(a.ecomTxt), esc(a.logs) || '<span class="mut">nenhuma</span>']));
+  h += `<div class="stat" style="margin-top:12px"><div class="ck" data-l="${reg('Sem e-commerce → Bling Loja Virtual', semEcom)}"><b>${semEcom.length}</b><span>sem e-commerce → Bling Loja Virtual · ${pct(sum(semEcom, a => a.gmv), gmvT)} do GMV</span></div><div class="ck" data-l="${reg('Sem e-commerce e com 5+ marketplaces', semEcom.filter(a => a.nMkt >= 5))}"><b>${semEcom.filter(a => a.nMkt >= 5).length}</b><span>dessas, com 5+ marketplaces (melhores candidatas)</span></div><div class="ck" data-l="${reg('Candidatas a Bling Envios', envios)}"><b>${envios.length}</b><span>e-commerce sem logística própria → Bling Envios</span></div></div>`;
 
   // 6. Faixas
   const fxPie = (title, sub, f, fmt) => card(title, sub, pie(fxGroups.map(g => ({ label: g.label, value: sum(g.acc, f), color: FX_COLOR[g.key], text: fmt(sum(g.acc, f)), acc: g.acc })), title));
@@ -386,11 +385,8 @@ function render() {
   // 7. Segmentos
   h += `<h2>7. Segmentos (agrupados)</h2><div class="grid">` + card('Empresas por segmento', '', barList(segGroups.map(g => ({ label: g.label, value: g.acc.length, color: g.color, acc: g.acc })), v => v + ' emp.')) + card('MRR por segmento', '', barList([...segGroups].sort((a, b) => sum(b.acc, x => x.mrr) - sum(a.acc, x => x.mrr)).map(g => ({ label: g.label, value: sum(g.acc, a => a.mrr), color: g.color, acc: g.acc })), fmtMil)) + card('GMV por segmento', '', barList([...segGroups].sort((a, b) => sum(b.acc, x => x.gmv) - sum(a.acc, x => x.gmv)).map(g => ({ label: g.label, value: sum(g.acc, a => a.gmv), color: g.color, acc: g.acc })), fmtMi)) + '</div>';
   h += `<h3 class="sp">Segmento × IF</h3>` + matrix(segGroups, ifPresent.map(g => ({ label: g.key, acc: g.acc })), 'Segmento');
-  const segSorted = [...segGroups].sort((a, b) => sum(b.acc, x => x.gmv) - sum(a.acc, x => x.gmv));
-  h += `<h3 class="sp">Indicadores por segmento</h3>` + table(['Segmento', 'Emp.', 'GMV', 'MRR', 'Pedidos (média 3m)', 'Tickets 30d', 'Cita preço', 'Acima da faixa', 'Sem e-commerce', 'API < 90%', 'Saúde API média'], segSorted.map(g => {
-    const pr = g.acc.filter(a => a.riscos['Preço']), ac = g.acc.filter(a => a.acimaFaixa === 1), se = g.acc.filter(a => !a.temEcom), ap = g.acc.filter(a => a.apiBaixa === 1), t = g.label;
-    return [L(t, g.acc, esc(t)), L(t, g.acc, g.acc.length), L(t, g.acc, fmtMi(sum(g.acc, a => a.gmv))), L(t, g.acc, fmtMil(sum(g.acc, a => a.mrr))), L(t, g.acc, fmtInt(sum(g.acc, a => a.media))), L(t + ' · 3+ tickets', g.acc.filter(a => a.ticketsAlto), fmtInt(sum(g.acc, a => a.tickets))), L(t + ' · cita preço', pr, pr.length), L(t + ' · acima da faixa', ac, `${ac.length}/${cnt(g.acc, a => a.acimaFaixa)}`), L(t + ' · sem e-commerce', se, se.length), L(t + ' · API < 90%', ap, `${ap.length}/${cnt(g.acc, a => a.apiBaixa)}`), L(t, g.acc, avg(g.acc, a => a.api) == null ? '–' : `<span class="${apiCls(avg(g.acc, a => a.api))}" style="padding:2px 6px;border-radius:6px">${Math.round(avg(g.acc, a => a.api))}%</span>`)];
-  }));
+  const segInd = (title, f, titleList) => card(title, 'contas por segmento · clique para ver', barList(segGroups.map(g => ({ label: g.label, value: g.acc.filter(f).length, color: g.color, acc: g.acc.filter(f) })).filter(i => i.value).sort((a, b) => b.value - a.value), v => v + ' emp.'));
+  h += `<h3 class="sp">Indicadores por segmento</h3><div class="grid">` + segInd('Citam preço como risco', a => a.riscos['Preço']) + segInd('Volume acima da faixa', a => a.acimaFaixa === 1) + segInd('Sem e-commerce', a => !a.temEcom) + segInd('Saúde da API abaixo de ' + API_GREEN + '%', a => a.apiBaixa === 1) + segInd('3+ tickets em 30 dias', a => a.ticketsAlto === 1) + segInd('Health Score em Atenção ou Crítico', a => a.banda !== 'Saudável') + '</div>';
 
   // 8. Integrações e hubs
   const integCount = new Map(); ACC.forEach(a => a.integ.forEach(i => { const k = i.toLowerCase() === 'api' ? 'Api (genérica: Magis5, Base e outros hubs via API)' : i; integCount.set(k, (integCount.get(k) || []).concat(a)); }));
@@ -404,8 +400,11 @@ function render() {
     + '</div>';
 
   // 9. Grupos
-  const grupos = [...groupBy(ACC.filter(a => a.grupo), a => a.grupo).entries()].sort((a, b) => b[1].length - a[1].length);
-  h += `<h2>9. Grupos econômicos</h2><p class="lead">${grupos.length} grupos, ${sum(grupos, g => g[1].length)} empresas com grupo preenchido na Cx.</p>` + table(['Grupo', 'Empresa', 'IF', 'Faixa', 'Segmento (Cx)', 'GMV último mês', 'Pedidos (média 3m)'], grupos.flatMap(([g, acc]) => acc.map((a, i) => [i ? '' : `<b>${esc(g)}</b>`, nomeLink(a), a.IF, a.fx ? 'Faixa ' + a.fx : '–', esc(a.seg), fmtMi(a.gmv), fmtInt(a.media)])));
+  const grupos = [...groupBy(ACC.filter(a => a.grupo), a => a.grupo).entries()].sort((a, b) => sum(b[1], x => x.gmv) - sum(a[1], x => x.gmv));
+  h += `<h2>9. Grupos econômicos</h2><p class="lead">${grupos.length} grupos, ${sum(grupos, g => g[1].length)} empresas com grupo preenchido na Cx. Clique no grupo para ver as empresas.</p><div class="two">`
+    + card('GMV por grupo econômico', 'soma do GMV último mês das empresas do grupo', grupos.length ? barList(grupos.map(([g, acc], i) => ({ label: `${g} (${acc.length})`, value: sum(acc, a => a.gmv), color: hue(i), acc })), fmtMi) : '<p class="mut">Nenhum grupo preenchido.</p>')
+    + card('MRR por grupo econômico', 'soma do MRR das empresas do grupo', grupos.length ? barList([...grupos].sort((a, b) => sum(b[1], x => x.mrr) - sum(a[1], x => x.mrr)).map(([g, acc], i) => ({ label: `${g} (${acc.length})`, value: sum(acc, a => a.mrr), color: hue(i), acc })), fmtMil) : '<p class="mut">Nenhum grupo preenchido.</p>')
+    + '</div>';
   $('#body').innerHTML = h;
 }
 
@@ -442,8 +441,12 @@ async function loadRepoFile(name) {
   const r = await fetch(name + '?_=' + Date.now()); if (!r.ok) throw new Error('sem ' + name);
   loadWorkbook(XLSX.read(await r.arrayBuffer(), { type: 'array' }), name + ' (do repositório)');
 }
+function applyTheme(t) { document.documentElement.dataset.theme = t; const b = $('#theme'); if (b) b.textContent = t === 'dark' ? '☀️ Modo claro' : '🌙 Modo escuro'; }
 document.addEventListener('DOMContentLoaded', async () => {
   const p = new URLSearchParams(location.search);
+  let theme = 'light'; try { theme = localStorage.getItem('theme') || (typeof DEFAULT_THEME !== 'undefined' ? DEFAULT_THEME : 'light'); } catch (e) {}
+  applyTheme(theme);
+  $('#theme').onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t); try { localStorage.setItem('theme', t); } catch (e) {} };
   $('#gload').onclick = () => { const u = $('#gurl').value.trim(); if (!u) return; localStorage.setItem('sheetUrl', u); $('#status').textContent = 'Carregando…'; $('#status').className = ''; loadGoogle(u).catch(fail); };
   $('#file').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = ev => { try { loadWorkbook(XLSX.read(ev.target.result, { type: 'array' }), f.name + ' (só neste navegador)'); } catch (err) { fail(err); } }; rd.readAsArrayBuffer(f); };
   $('#csm').onchange = () => { localStorage.setItem('csm', $('#csm').value); render(); };
