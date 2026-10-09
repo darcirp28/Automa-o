@@ -39,7 +39,8 @@ table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}th,t
 table.mx td.hm{text-align:center;color:var(--tx2);font-variant-numeric:tabular-nums}table.mx td.hm span,table.mx th span{display:block;font-size:10.5px;color:var(--mut);font-weight:400}table.mx th{text-align:center}table.mx th:first-child,table.mx td:first-child{text-align:left}
 .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:4px;margin-bottom:6px}.t-e{background:var(--acbg);color:var(--ac2)}
 .note{font-size:12.5px;color:var(--mut);margin-top:10px}
-.sb{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center;margin:7px 0;font-size:12.5px}.sl small{color:var(--mut);margin-left:4px}
+.chk{margin:12px 0 0}.chk summary{cursor:pointer;color:var(--mut);font-size:12.5px}
+.sb{display:grid;grid-template-columns:210px 1fr 84px;gap:10px;align-items:center;margin:7px 0;font-size:12.5px}.sl small{color:var(--mut);margin-left:4px}
 .sbar{display:flex;height:26px;border-radius:6px;overflow:hidden;background:var(--card2)}.sbar i{display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-size:11.5px;font-weight:600;overflow:hidden;white-space:nowrap;min-width:0}
 .bl{display:grid;gap:5px;font-size:12.5px}.blr{display:grid;grid-template-columns:170px 1fr auto;gap:8px;align-items:center}.blb{height:14px;background:var(--card2);border-radius:4px;overflow:hidden}.blb i{display:block;height:100%}
 a{color:var(--link)}
@@ -63,6 +64,7 @@ dialog{border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 24px -2px 
   <div id="status">Suba os 2 arquivos crus (empresas_elite___cadastro + Exportação de Clientes) ou cole o link da planilha para começar.</div>
 </div>
 <div class="kpis" id="kpis"></div>
+<div id="check"></div>
 <div id="body"><p class="note">Aguardando dados.</p></div>
 <dialog id="modal"><div class="mh"><h3 id="mtitle"></h3><button onclick="document.getElementById('modal').close()">Fechar</button></div><div id="mbody"></div></dialog>
 </main>
@@ -109,8 +111,20 @@ const HEALTH_BANDS = { saudavel: 75, atencao: 50 };
 const RISCOS = [['Preço','preço'],['Produto','produto'],['Suporte','suporte'],['Funcionalidade','funcionalidade'],['Armazenamento','armazenamento'],['Instabilidade','instabilidade'],['Lentidão','lentid'],['Plano','plano'],['Integrações','integra'],['CSM','csm']];
 
 const S = v => (v == null ? '' : String(v)).trim();
-const N = v => { if (v == null || v === '') return null; if (typeof v === 'number') return isNaN(v) ? null : v; const x = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(x) ? null : x; };
-const Nraw = v => { if (v == null || v === '') return null; if (typeof v === 'number') return isNaN(v) ? null : v; const x = parseFloat(String(v).replace(',','.')); return isNaN(x) ? null : x; };
+const cleanNum = v => S(v).replace(/[\s\u00a0]/g, '').replace(/^R\$/i, '').replace(/%$/, '').replace(/^\((.*)\)$/, '-$1');
+// Lê número em qualquer formato (1.941,67 · 1,941.67 · 1941.67 · 2.250 · 100,4% · R$ 2.250). pct=true: nunca trata ponto/vírgula como milhar.
+const parseNum = (v, pct) => {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return isNaN(v) ? null : v;
+  let t = cleanNum(v); if (t === '' || t === '-') return null;
+  const hasC = t.includes(','), hasD = t.includes('.');
+  if (hasC && hasD) { t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, ''); }
+  else if (hasC) { t = (!pct && /^-?\d{1,3}(,\d{3})+$/.test(t)) ? t.replace(/,/g, '') : t.replace(',', '.'); }
+  else if (hasD) { if (!pct && /^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); }
+  const x = Number(t); return isNaN(x) ? null : x;
+};
+const N = v => parseNum(v, false);
+const Nraw = v => parseNum(v, true);
 const has = (t, k) => S(t).toLowerCase().includes(k.toLowerCase());
 const toDate = v => { if (v == null || v === '') return null; if (v instanceof Date) return isNaN(v) ? null : v; if (typeof v === 'number') return new Date(Math.round((v - 25569) * 864e5)); const s = String(v).trim(); let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return new Date(+m[1], m[2] - 1, +m[3]); m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return new Date(+m[3], m[2] - 1, +m[1]); const d = new Date(s); return isNaN(d) ? null : d; };
 const daysBetween = (a, b) => (a && b) ? Math.round((b - a) / 864e5) : null;
@@ -222,6 +236,10 @@ function buildAccounts(cxRows, metaRows) {
     if (fx && media != null) { const [lo, hi] = FAIXAS[fx]; pos = media > hi ? 'Acima do intervalo' : media < lo ? 'Abaixo do intervalo' : 'Dentro do intervalo'; if (media > hi) acima = media / hi - 1; }
     const mkts = m ? S(col(m, 'Marketplaces Configurados')) : '';
     const nMkt = mkts ? mkts.split(',').filter(x => x.trim()).length : 0;
+    const splitList = t => S(t).split(',').map(x => x.trim()).filter(Boolean);
+    const mktList = m ? splitList(col(m, 'Marketplaces Configurados')) : null;   // null = sem dado na Tabela Meta
+    const ecomList = m ? splitList(col(m, 'E-commerces Configurados')) : null;
+    const mrrRaw = m ? S(col(m, 'MRR')) : (S(col(r, 'Último MRR Ativo')) || S(col(r, 'MRR')));
     const ecomTxt = m ? S(col(m, 'E-commerces Configurados')) : (ECOM_CX.some(e => S(col(r, 'Integrações ativas')).toLowerCase().includes(e)) ? '(integração Cx)' : '');
     const temEcom = ecomTxt ? 1 : 0;
     const logs = m ? S(col(m, 'Logísticas Configuradas')) : '';
@@ -233,6 +251,7 @@ function buildAccounts(cxRows, metaRows) {
     const riscos = {}; RISCOS.forEach(([k, key]) => riscos[k] = has(motivo, key) ? 1 : 0);
     const api = m ? Nraw(col(m, 'Saúde da API (% 2xx)')) : null;
     const arm = m ? Nraw(col(m, '% Armazenamento Utilizado')) : null;
+    const apiRaw = m ? S(col(m, 'Saúde da API (% 2xx)')) : '', armRaw = m ? S(col(m, '% Armazenamento Utilizado')) : '';
     const sim = k => m ? (S(col(m, k)).toLowerCase() === 'sim' ? 1 : 0) : null;
     const cert = m ? (['não','nao',''].includes(S(col(m, 'Comprou Certificado pelo Bling')).toLowerCase()) ? 0 : 1) : null;
     const ultLogin = m ? toDate(col(m, 'Último Login')) : null; const diasLogin = daysBetween(ultLogin, REF);
@@ -249,10 +268,10 @@ function buildAccounts(cxRows, metaRows) {
     const integ = S(col(r, 'Integrações ativas')).split(',').map(x => x.trim()).filter(Boolean);
     return {
       id, razao: S(col(r, 'Razão Social')), nome: S(col(r, 'Fantasia')) || S(col(r, 'Razão Social')),
-      csm: S(col(r, 'Carteira')), statusCx: S(col(r, 'Status')), seg, segGrupo, mrr, plano: m ? S(col(m, 'Plano Contratado')) : '', tickets, ticketsAlto: tickets == null ? null : (tickets >= 3 ? 1 : 0), nApps, integ, hubs: integ.filter(i => HUBS.map(h => h.toLowerCase()).includes(i.toLowerCase())), apiGenerica: integ.some(i => i.toLowerCase() === 'api') ? 1 : 0, grupo: S(col(r, 'Grupo')), tags, IF, ifLabel: IF_LABEL[IF] || IF,
+      csm: S(col(r, 'Carteira')), statusCx: S(col(r, 'Status')), seg, segGrupo, mrr, plano: m ? S(col(m, 'Plano Contratado')) : '', tickets, ticketsAlto: tickets == null ? null : (tickets >= 3 ? 1 : 0), nApps, integ, hubList: integ.filter(i => i.toLowerCase() === 'api' || HUBS.map(h => h.toLowerCase()).includes(i.toLowerCase())).map(i => i.toLowerCase() === 'api' ? 'Api (Magis5, Base e outros hubs via API)' : i), hubs: integ.filter(i => HUBS.map(h => h.toLowerCase()).includes(i.toLowerCase())), apiGenerica: integ.some(i => i.toLowerCase() === 'api') ? 1 : 0, grupo: S(col(r, 'Grupo')), tags, IF, ifLabel: IF_LABEL[IF] || IF,
       fx, fxLabel: FAIXA_LABEL[fx], fxMin: fx ? FAIXAS[fx][0] : null, fxMax: fx ? FAIXAS[fx][1] : null,
       naMeta: m ? 1 : 0, gmv, pedUlt, media, pedMkt: m ? N(col(m, 'Pedido importado de marketplace')) : null, pedApi: m ? N(col(m, 'Pedido API')) : null,
-      pos, acima, mkts, nMkt, ecomTxt, temEcom, logs, nLog: logList.length, logPropria, cobertura,
+      pos, acima, mkts, nMkt, mktList, ecomList, mrrRaw, armRaw, apiRaw, ecomTxt, temEcom, logs, nLog: logList.length, logPropria, cobertura,
       motivo, temMotivo, riscos,
       queda: (m && media && pedUlt != null) ? (pedUlt < 0.75 * media ? 1 : 0) : null,
       api, apiBaixa: api == null ? null : (api < (typeof API_GREEN !== 'undefined' ? API_GREEN : 90) ? 1 : 0), usaApi: sim('Usou API'),
@@ -292,6 +311,9 @@ function buildAccounts(cxRows, metaRows) {
 // ===== Interface =====
 const $ = s => document.querySelector(s);
 const fmtInt = n => (n == null ? '–' : Math.round(n).toLocaleString('pt-BR'));
+const fmtMoney = n => n == null ? '–' : 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
+const fmtPctExact = n => n == null ? '–' : n.toLocaleString('pt-BR', { maximumFractionDigits: 10 }) + '%';
+const fmtPct1 = n => n == null ? '–' : n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
 const fmtMil = n => (n == null ? '–' : 'R$ ' + Math.round(n).toLocaleString('pt-BR'));
 const fmtMi = n => (n == null ? '–' : 'R$ ' + (n / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi');
 const pct = (a, b) => (b ? (100 * a / b).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '–');
@@ -310,7 +332,7 @@ function openList(i) {
   const L = LISTS[i]; if (!L) return;
   const rows = [...L.acc].sort((a, b) => a.score - b.score || (b.gmv || 0) - (a.gmv || 0));
   $('#mtitle').textContent = `${L.title} · ${rows.length} conta${rows.length === 1 ? '' : 's'}`;
-  $('#mbody').innerHTML = rows.length ? `<table><thead><tr><th>Empresa</th><th>Score</th><th>CSM</th><th>IF</th><th>Faixa</th><th>Segmento (Cx)</th><th>Plano</th><th>MRR</th><th>GMV último mês</th><th>Pedidos (média 3m)</th><th>Tickets 30d</th><th>Último login</th><th>Última interação</th><th>Armazenamento</th><th>Saúde API</th><th>Posição vs faixa</th><th>Motivo do risco</th><th>Integrações</th></tr></thead><tbody>${rows.map(a => `<tr><td>${nomeLink(a)}<span class="mut sm">${esc(a.razao !== a.nome ? a.razao : '')}</span></td><td class="${scoreCls(a.score)}" title="${esc('Score: ' + a.scoreFonte + (a.penalidades.length ? ' · Sinais: ' + a.penalidades.map(p => p[0]).join(' · ') : ''))}">${a.score}</td><td>${esc(a.csm)}</td><td>${a.IF}</td><td>${a.fx ? 'Faixa ' + a.fx : '–'}</td><td>${esc(a.seg)}</td><td>${esc(a.plano) || '–'}</td><td>${fmtMil(a.mrr)}</td><td>${fmtMi(a.gmv)}</td><td>${fmtInt(a.media)}</td><td>${a.tickets == null ? '–' : fmtInt(a.tickets)}</td><td class="${a.diasLogin != null && a.diasLogin > 15 ? 'c-red' : a.diasLogin != null && a.diasLogin > 7 ? 'c-yel' : ''}">${fmtDays(a.diasLogin)}</td><td class="${a.diasInteracao != null && a.diasInteracao > 60 ? 'c-red' : a.diasInteracao != null && a.diasInteracao > 30 ? 'c-yel' : ''}">${fmtDays(a.diasInteracao)}</td><td class="${armCls(a.arm)}">${a.arm == null ? '–' : Math.round(a.arm) + '%'}</td><td class="${apiCls(a.api)}">${a.api == null ? '–' : Math.round(a.api) + '%'}</td><td>${esc(a.pos)}</td><td>${esc(a.motivo) || '–'}</td><td class="wrap">${esc(a.integ.join(', ')) || '–'}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">Nenhuma conta neste recorte.</p>';
+  $('#mbody').innerHTML = rows.length ? `<table><thead><tr><th>Empresa</th><th>Score</th><th>CSM</th><th>IF</th><th>Faixa</th><th>Segmento (Cx)</th><th>Plano</th><th>MRR</th><th>GMV último mês</th><th>Pedidos (média 3m)</th><th>Tickets 30d</th><th>Último login</th><th>Última interação</th><th>Armazenamento</th><th>Saúde API</th><th>Posição vs faixa</th><th>Motivo do risco</th><th>Integrações</th></tr></thead><tbody>${rows.map(a => `<tr><td>${nomeLink(a)}<span class="mut sm">${esc(a.razao !== a.nome ? a.razao : '')}</span></td><td class="${scoreCls(a.score)}" title="${esc('Score: ' + a.scoreFonte + (a.penalidades.length ? ' · Sinais: ' + a.penalidades.map(p => p[0]).join(' · ') : ''))}">${a.score}</td><td>${esc(a.csm)}</td><td>${a.IF}</td><td>${a.fx ? 'Faixa ' + a.fx : '–'}</td><td>${esc(a.seg)}</td><td>${esc(a.plano) || '–'}</td><td title="Valor na planilha: ${esc(a.mrrRaw)}">${fmtMoney(a.mrr)}</td><td>${fmtMi(a.gmv)}</td><td>${fmtInt(a.media)}</td><td>${a.tickets == null ? '–' : fmtInt(a.tickets)}</td><td class="${a.diasLogin != null && a.diasLogin > 15 ? 'c-red' : a.diasLogin != null && a.diasLogin > 7 ? 'c-yel' : ''}">${fmtDays(a.diasLogin)}</td><td class="${a.diasInteracao != null && a.diasInteracao > 60 ? 'c-red' : a.diasInteracao != null && a.diasInteracao > 30 ? 'c-yel' : ''}">${fmtDays(a.diasInteracao)}</td><td class="${armCls(a.arm)}" title="Valor na planilha: ${esc(a.armRaw)}">${fmtPctExact(a.arm)}</td><td class="${apiCls(a.api)}" title="Valor na planilha: ${esc(a.apiRaw)}">${fmtPctExact(a.api)}</td><td>${esc(a.pos)}</td><td>${esc(a.motivo) || '–'}</td><td class="wrap">${esc(a.integ.join(', ')) || '–'}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">Nenhuma conta neste recorte.</p>';
   $('#modal').showModal();
 }
 document.addEventListener('click', e => { const t = e.target.closest('[data-l]'); if (t) openList(+t.dataset.l); });
@@ -370,6 +392,12 @@ function render() {
   const gmvT = sum(ACC, a => a.gmv), pedT = sum(ACC, a => a.media), comp = ACC.filter(a => a.acimaFaixa != null);
   const segs = groupBy(ACC, a => a.segGrupo), nSeg = [...segs.keys()].filter(k => k !== 'Sem segmento na Cx').length;
   $('#kpis').innerHTML = [[`${Math.round(avg(ACC, a => a.score))}`, `Health Score médio · ${ACC.filter(a => a.banda === 'Crítico').length} crítica${ACC.filter(a => a.banda === 'Crítico').length === 1 ? '' : 's'}`], [fmtInt(ACC.length), 'empresas'], [fmtMi(gmvT), 'GMV último mês'], [fmtInt(pedT), 'pedidos/mês (média 3 meses)'], [fmtMil(sum(ACC, a => a.mrr)), `MRR (${cnt(ACC, a => a.mrr)} contas com dado)`], [fmtInt(sum(ACC, a => a.tickets)), `tickets nos últimos 30 dias · ${sum(ACC, a => a.ticketsAlto)} conta${sum(ACC, a => a.ticketsAlto) === 1 ? '' : 's'} com 3+`], [nSeg, `grupos de segmento (+${(segs.get('Sem segmento na Cx') || []).length} sem segmento)`], [`${sum(comp, a => a.acimaFaixa)}/${comp.length}`, 'contas com volume acima da faixa'], [`${sum(ACC, a => a.temMotivo)}/${ACC.length}`, 'contas com motivo de risco']].map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
+  { // Conferência: valores lidos da planilha (para comparar com o Excel)
+    const st = arr => { const v = arr.filter(x => x != null).sort((p, q) => p - q); return v.length ? { n: v.length, min: v[0], med: v[v.length >> 1], max: v[v.length - 1], sum: v.reduce((p, q) => p + q, 0), acima100: v.filter(x => x > 100).length } : null; };
+    const sm = st(ACC.map(a => a.mrr)), sa = st(ACC.map(a => a.arm)), sp = st(ACC.map(a => a.api));
+    const row = (nome, x, f, extra) => x ? `<tr><td>${nome}</td><td>${x.n}</td><td>${f(x.min)}</td><td>${f(x.med)}</td><td>${f(x.max)}</td><td>${extra(x)}</td></tr>` : `<tr><td>${nome}</td><td colspan="5" class="mut">sem dado</td></tr>`;
+    $('#check').innerHTML = `<details class="chk"><summary>Conferência dos valores lidos da planilha (MRR, armazenamento, API)</summary><div class="tw"><table><thead><tr><th>Campo</th><th>Contas com valor</th><th>Menor</th><th>Mediana</th><th>Maior</th><th>Observação</th></tr></thead><tbody>${row('MRR', sm, fmtMoney, x => 'soma ' + fmtMoney(x.sum))}${row('% Armazenamento Utilizado', sa, fmtPctExact, x => x.acima100 + ' conta(s) acima de 100%')}${row('Saúde da API (% 2xx)', sp, fmtPctExact, x => x.acima100 + ' conta(s) acima de 100%')}</tbody></table></div><p class="note">Passe o mouse sobre o MRR, o armazenamento ou a API na lista de clientes para ver o texto exato que veio na planilha. Contas sem linha na Tabela Meta: ${ACC.filter(a => !a.naMeta).length}.</p></details>`;
+  }
   if (!ACC.length) { $('#body').innerHTML = '<p class="note">Nenhuma empresa para este filtro.</p>'; return; }
 
   const ifGroups = IF_ORDER.map(k => ({ key: k, short: k, label: IF_LABEL[k], acc: ACC.filter(a => a.IF === k) })).filter(g => g.acc.length || ['IF1', 'IF2', 'IF3', 'IF4', 'IF5', 'Sem IF'].includes(g.key));
@@ -417,7 +445,7 @@ function render() {
 
   // 2. Comparativo
   h += `<h2>2. Comparativo entre os IFs</h2>` + table(['IF', 'Empresas', 'Score médio', 'GMV', 'GMV médio', 'MRR', 'MRR médio', 'Pedidos (mediana)', 'Tickets 30d (total)', 'Marketplaces (média)', 'Armazenamento médio', 'Saúde API média', 'Usa API', 'Segmentos distintos'],
-    ifGroups.map(g => g.acc.length ? ((arr) => arr.map(c => L(g.label, g.acc, c)))([esc(g.label), g.acc.length, `<span class="${scoreCls(avg(g.acc, a => a.score))}" style="padding:2px 6px;border-radius:6px">${Math.round(avg(g.acc, a => a.score))}</span>`, fmtMi(sum(g.acc, a => a.gmv)), fmtMi(avg(g.acc, a => a.gmv)), fmtMil(sum(g.acc, a => a.mrr)), fmtMil(avg(g.acc, a => a.mrr)), fmtInt(median(g.acc, a => a.media)), fmtInt(sum(g.acc, a => a.tickets)), (avg(g.acc, a => a.naMeta ? a.nMkt : null) ?? 0).toFixed(1), avg(g.acc, a => a.arm) == null ? '–' : `<span class="${armCls(avg(g.acc, a => a.arm))}" style="padding:2px 6px;border-radius:6px">${Math.round(avg(g.acc, a => a.arm))}%</span>`, avg(g.acc, a => a.api) == null ? '–' : `<span class="${apiCls(avg(g.acc, a => a.api))}" style="padding:2px 6px;border-radius:6px">${Math.round(avg(g.acc, a => a.api))}%</span>`, avg(g.acc, a => a.usaApi) == null ? '–' : Math.round(100 * avg(g.acc, a => a.usaApi)) + '%', new Set(g.acc.map(a => a.seg)).size]) : [esc(g.label), 0, `<span class="mut">Nenhuma empresa da carteira com esse IF</span>`, '', '', '', '', '', '', '', '', '', '', '']));
+    ifGroups.map(g => g.acc.length ? ((arr) => arr.map(c => L(g.label, g.acc, c)))([esc(g.label), g.acc.length, `<span class="${scoreCls(avg(g.acc, a => a.score))}" style="padding:2px 6px;border-radius:6px">${Math.round(avg(g.acc, a => a.score))}</span>`, fmtMi(sum(g.acc, a => a.gmv)), fmtMi(avg(g.acc, a => a.gmv)), fmtMil(sum(g.acc, a => a.mrr)), fmtMil(avg(g.acc, a => a.mrr)), fmtInt(median(g.acc, a => a.media)), fmtInt(sum(g.acc, a => a.tickets)), (avg(g.acc, a => a.naMeta ? a.nMkt : null) ?? 0).toFixed(1), avg(g.acc, a => a.arm) == null ? '–' : `<span class="${armCls(avg(g.acc, a => a.arm))}" style="padding:2px 6px;border-radius:6px">${fmtPct1(avg(g.acc, a => a.arm))}</span>`, avg(g.acc, a => a.api) == null ? '–' : `<span class="${apiCls(avg(g.acc, a => a.api))}" style="padding:2px 6px;border-radius:6px">${fmtPct1(avg(g.acc, a => a.api))}</span>`, avg(g.acc, a => a.usaApi) == null ? '–' : Math.round(100 * avg(g.acc, a => a.usaApi)) + '%', new Set(g.acc.map(a => a.seg)).size]) : [esc(g.label), 0, `<span class="mut">Nenhuma empresa da carteira com esse IF</span>`, '', '', '', '', '', '', '', '', '', '', '']));
   h += `<p class="note">MRR, tickets, marketplaces, armazenamento, saúde da API e uso de API só existem na Tabela Meta e cobrem as ${sum(ACC, a => a.naMeta)} contas dessa tabela.</p>`;
 
   // 3. Riscos
@@ -457,16 +485,27 @@ function render() {
   const segInd = (title, f, titleList) => card(title, 'contas por segmento · clique para ver', barList(segGroups.map(g => ({ label: g.label, value: g.acc.filter(f).length, color: g.color, acc: g.acc.filter(f) })).filter(i => i.value).sort((a, b) => b.value - a.value), v => v + ' emp.'));
   h += `<h3 class="sp">Indicadores por segmento</h3><div class="grid">` + segInd('Citam preço como risco', a => a.riscos['Preço']) + segInd('Volume acima da faixa', a => a.acimaFaixa === 1) + segInd('Sem e-commerce', a => !a.temEcom) + segInd('Saúde da API abaixo de ' + API_GREEN + '%', a => a.apiBaixa === 1) + segInd('3+ tickets em 30 dias', a => a.ticketsAlto === 1) + segInd('Health Score em Atenção ou Crítico', a => a.banda !== 'Saudável') + '</div>';
 
-  // 8. Integrações e hubs
-  const integCount = new Map(); ACC.forEach(a => a.integ.forEach(i => { const k = i.toLowerCase() === 'api' ? 'Api (genérica: Magis5, Base e outros hubs via API)' : i; integCount.set(k, (integCount.get(k) || []).concat(a)); }));
-  const integItems = [...integCount.entries()].sort((a, b) => b[1].length - a[1].length);
-  const hubItems = integItems.filter(([k]) => HUBS.map(h => h.toLowerCase()).includes(k.toLowerCase()) || k.startsWith('Api ('));
+  // 8. Integrações: marketplaces, e-commerces e hubs separados (verde = tem · vermelho = não tem; clique para ver as empresas)
+  const platStack = (getList, maxRows) => {
+    const comDado = ACC.filter(a => getList(a) != null);
+    const usoAll = new Map(); ALL.forEach(a => (getList(a) || []).forEach(k => usoAll.set(k, (usoAll.get(k) || 0) + 1)));
+    const usoAcc = new Map(); comDado.forEach(a => getList(a).forEach(k => usoAcc.set(k, (usoAcc.get(k) || 0) + 1)));
+    const names = new Set(usoAcc.keys()); [...usoAll.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).forEach(([k]) => names.add(k));
+    const rows = [...names].sort((x, y) => (usoAcc.get(y) || 0) - (usoAcc.get(x) || 0) || (usoAll.get(y) || 0) - (usoAll.get(x) || 0)).slice(0, maxRows).map(k => {
+      const tem = comDado.filter(a => getList(a).includes(k)), nao = comDado.filter(a => !getList(a).includes(k));
+      return { label: k, parts: [{ label: 'Tem', count: tem.length, color: '#34AD61', acc: tem }, { label: 'Não tem', count: nao.length, color: '#F05143', acc: nao }], extra: pct(tem.length, comDado.length) + ' têm' };
+    });
+    return { rows, n: comDado.length, semDado: ACC.length - comDado.length, total: names.size };
+  };
+  const leg8 = '<p class="sub"><span class="dot" style="background:#34AD61"></span> tem a integração &nbsp;·&nbsp; <span class="dot" style="background:#F05143"></span> não tem &nbsp;·&nbsp; clique em um trecho para ver as empresas</p>';
+  const mk = platStack(a => a.mktList, 20), ec = platStack(a => a.ecomList, 20), hb = platStack(a => a.hubList, 20);
   const appsDist = groupBy(ACC.filter(a => a.nApps != null), a => a.nApps >= 5 ? '5 ou mais apps' : a.nApps + (a.nApps === 1 ? ' app' : ' apps'));
-  h += `<h2>8. Integrações e hubs</h2><p class="lead">Integrações ativas na Cx. A exportação não traz o nome dos aplicativos conectados via API (Magis5, Base etc.): eles aparecem como "Api" e a Tabela Meta informa só a quantidade de apps por conta.</p><div class="two">`
-    + card('Integrações mais usadas', `top 20 de ${integItems.length} · ${ACC.length} contas`, barList(integItems.slice(0, 20).map(([k, acc], i) => ({ label: k, value: acc.length, color: hue(i), acc })), v => v + ' emp.'))
-    + card('Hubs e integradores identificáveis', 'contas por hub (uma conta pode ter mais de um)', hubItems.length ? barList(hubItems.map(([k, acc], i) => ({ label: k, value: acc.length, color: hue(i + 5), acc })), v => v + ' emp.') : '<p class="mut">Nenhum hub identificável nesta carteira.</p>')
-    + card('Quantidade de aplicativos com uso na API', `${cnt(ACC, a => a.nApps)} contas com dado (Tabela Meta)`, barList([...appsDist.entries()].sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([k, acc], i) => ({ label: k, value: acc.length, color: hue(i + 9), acc })), v => v + ' emp.'))
-    + '</div>';
+  const nota8 = x => `${x.n} contas com dado na Tabela Meta${x.semDado ? ` · ${x.semDado} sem dado ficam de fora` : ''} · ${x.rows.length} de ${x.total} plataformas`;
+  h += `<h2>8. Integrações</h2><p class="lead">Marketplaces e e-commerces são colunas separadas da Tabela Meta. Em cada plataforma, o verde mostra quem tem e o vermelho quem não tem. O nome dos apps conectados via API (Magis5, Base etc.) não vem na exportação: aparece como "Api".</p>`
+    + card('Marketplaces', nota8(mk) + ' · coluna "Marketplaces Configurados"', leg8 + stack(mk.rows))
+    + '<div style="height:12px"></div>' + card('E-commerces (plataformas de loja virtual)', nota8(ec) + ' · coluna "E-commerces Configurados"', leg8 + stack(ec.rows))
+    + '<div style="height:12px"></div>' + card('Hubs e integradores', `${hb.n} contas · integrações ativas da Exportação de Clientes (Cx)`, leg8 + stack(hb.rows))
+    + '<div class="two">' + card('Quantidade de aplicativos com uso na API', `${cnt(ACC, a => a.nApps)} contas com dado (Tabela Meta)`, barList([...appsDist.entries()].sort((x, y) => parseInt(x[0]) - parseInt(y[0])).map(([k, acc], i) => ({ label: k, value: acc.length, color: hue(i + 9), acc })), v => v + ' emp.')) + '</div>';
 
   // 9. Grupos
   const grupos = [...groupBy(ACC.filter(a => a.grupo), a => a.grupo).entries()].sort((a, b) => sum(b[1], x => x.gmv) - sum(a[1], x => x.gmv));
