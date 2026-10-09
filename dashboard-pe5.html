@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — Tickets PE</title>
+<style>
+  /* =========================================================================
+     CONFIG (edite aqui se precisar)
+     ID da planilha e GIDs das abas. Veja instruções completas no rodapé do
+     arquivo (função CONFIG no <script>) e no comentário no topo do <script>.
+     ========================================================================= */
+
+  /* ---------- Paleta (claro/escuro) ---------- */
+  :root { color-scheme: light dark; }
+
+  body.viz-root {
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+    --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+      --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+      --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body.viz-root {
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-variant-numeric: proportional-nums;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 64px; }
+
+  /* ---------- Header ---------- */
+  header.top {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start;
+    justify-content: space-between; margin-bottom: 18px;
+  }
+  header.top h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; }
+  header.top p.sub { margin: 0; color: var(--text-secondary); font-size: 13.5px; }
+  .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+    border-radius: 8px; padding: 7px 12px; line-height: 1.2;
+  }
+  .btn:hover { filter: brightness(0.97); }
+  :root[data-theme="dark"] .btn:hover, body.viz-root.dark .btn:hover { filter: brightness(1.15); }
+  .btn.primary { background: var(--series-1); color: #fff; border-color: transparent; }
+  .theme-switch { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .theme-switch button {
+    font: inherit; font-size: 12px; font-weight: 600; border: none; background: var(--surface-1);
+    color: var(--text-secondary); padding: 7px 10px; cursor: pointer;
+  }
+  .theme-switch button.active { background: var(--series-1); color: #fff; }
+  .meta-line { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .meta-line a { color: var(--series-1); }
+
+  /* ---------- Banner / status ---------- */
+  .banner {
+    border-radius: 10px; padding: 12px 14px; font-size: 13.5px; margin-bottom: 18px;
+    border: 1px solid var(--border); display: none; gap: 10px;
+  }
+  .banner.show { display: flex; }
+  .banner.error { background: color-mix(in srgb, var(--critical) 10%, var(--surface-1)); }
+  .banner.loading { background: var(--surface-1); color: var(--text-secondary); }
+  .banner strong { display: block; margin-bottom: 2px; }
+  .banner ul { margin: 6px 0 0; padding-left: 18px; }
+
+  /* ---------- KPI row ---------- */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .kpi .label { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; }
+  .kpi .value { font-size: 26px; font-weight: 700; }
+
+  /* ---------- Filters ---------- */
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 20px;
+  }
+  .filters input[type="search"], .filters select {
+    font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--page-plane); color: var(--text-primary);
+  }
+  .filters input[type="search"] { min-width: 220px; flex: 1 1 220px; }
+  .filters .clear-link { font-size: 12.5px; color: var(--series-1); cursor: pointer; background: none; border: none; font-weight: 600; }
+
+  /* ---------- Chart cards ---------- */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 16px 10px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 2px; }
+  .card p.hint { margin: 0 0 10px; font-size: 12px; color: var(--text-muted); }
+  .card .empty { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; }
+  .toggle-table { font-size: 12px; color: var(--series-1); background: none; border: none; cursor: pointer; font-weight: 600; padding: 6px 0 2px; }
+  .table-view { margin-top: 8px; display: none; }
+  .table-view.show { display: block; }
+  .table-view table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .table-view th, .table-view td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--gridline); }
+  .table-view th { color: var(--text-secondary); font-weight: 600; }
+
+  /* bar chart */
+  .bar-chart-svg { display: block; overflow: visible; }
+  .bar-group { cursor: default; }
+  .bar-group.clickable { cursor: pointer; }
+  .bar-group:hover .bar-fill { filter: brightness(1.12); }
+  .bar-fill { fill: var(--series-1); }
+  .bar-label { font-size: 12px; fill: var(--text-secondary); }
+  .bar-value { font-size: 12px; font-weight: 600; fill: var(--text-primary); }
+  .bar-hit { fill: transparent; }
+  .axis-line { stroke: var(--baseline); stroke-width: 1; }
+
+  /* line chart */
+  .line-path { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .line-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+  .line-grid { stroke: var(--gridline); stroke-width: 1; }
+  .line-axis-text { font-size: 11px; fill: var(--text-muted); }
+  .crosshair { stroke: var(--baseline); stroke-width: 1; stroke-dasharray: 3 3; }
+
+  /* tooltip */
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 60; display: none;
+    background: var(--text-primary); color: var(--surface-1); border-radius: 8px;
+    padding: 7px 10px; font-size: 12.5px; max-width: 260px; line-height: 1.35;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  }
+  #tooltip .tt-cat { color: var(--text-secondary) !important; opacity: .85; font-size: 11.5px; }
+  :root[data-theme="dark"] #tooltip, body.viz-root.dark-tt #tooltip { }
+  @media (prefers-color-scheme: dark) { #tooltip { } }
+  #tooltip .tt-val { font-weight: 700; }
+
+  /* ---------- Ticket table ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); }
+  table.tickets { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+  table.tickets thead th {
+    position: sticky; top: 0; background: var(--surface-1); text-align: left; font-weight: 600;
+    color: var(--text-secondary); padding: 10px 10px; border-bottom: 1px solid var(--border);
+    white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  table.tickets thead th .arrow { font-size: 10px; color: var(--text-muted); margin-left: 3px; }
+  table.tickets tbody td { padding: 9px 10px; border-bottom: 1px solid var(--gridline); vertical-align: top; }
+  table.tickets tbody tr { cursor: pointer; }
+  table.tickets tbody tr:hover { background: color-mix(in srgb, var(--series-1) 6%, transparent); }
+  table.tickets td.key { font-weight: 700; color: var(--series-1); white-space: nowrap; }
+  table.tickets td.summary { max-width: 360px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; white-space: nowrap; }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .row-count { font-size: 12.5px; color: var(--text-muted); margin: 8px 2px 0; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none;
+    align-items: flex-start; justify-content: center; z-index: 100; padding: 40px 16px;
+    overflow-y: auto;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--surface-1); color: var(--text-primary); border-radius: 14px;
+    max-width: 760px; width: 100%; padding: 22px 24px 26px; position: relative;
+  }
+  .modal h2 { margin: 0 0 4px; font-size: 19px; }
+  .modal .modal-sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 14px; }
+  .modal .close-x {
+    position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 20px;
+    cursor: pointer; color: var(--text-muted); line-height: 1;
+  }
+  .modal-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px; }
+  .modal-meta b { color: var(--text-primary); font-weight: 600; }
+  .modal section { margin-bottom: 16px; }
+  .modal section h3 { font-size: 13px; margin: 0 0 6px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .03em; }
+  .clamp-box { white-space: pre-wrap; font-size: 13.5px; line-height: 1.5; overflow: hidden; max-height: 130px; position: relative; }
+  .clamp-box.expanded { max-height: none; }
+  .clamp-box.has-fade::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34px;
+    background: linear-gradient(transparent, var(--surface-1));
+  }
+  .clamp-box.expanded.has-fade::after { display: none; }
+  .clamp-toggle { font-size: 12px; color: var(--series-1); background: none; border: none; cursor: pointer; font-weight: 600; margin-top: 4px; }
+  .history-item { border-left: 2px solid var(--gridline); padding: 2px 0 10px 12px; margin-left: 2px; }
+  .history-item .h-top { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .history-item .h-field { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .history-item .h-change { font-size: 12.5px; }
+  .history-item .h-change .arrow { color: var(--text-muted); padding: 0 4px; }
+
+  footer.page-footer { text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 30px; }
+  footer.page-footer a { color: var(--series-1); }
+
+  @media (max-width: 600px) {
+    table.tickets td.summary { max-width: 220px; }
+  }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Dashboard de Tickets — Projeto PE</h1>
+      <p class="sub">Dados carregados ao vivo da planilha do Google Sheets gerada pela automação diária.</p>
+      <p class="meta-line" id="metaLine">Carregando dados…</p>
+    </div>
+    <div class="top-actions">
+      <div class="theme-switch" id="themeSwitch">
+        <button data-theme="light">Claro</button>
+        <button data-theme="system" class="active">Auto</button>
+        <button data-theme="dark">Escuro</button>
+      </div>
+      <button class="btn primary" id="refreshBtn">↻ Atualizar dados</button>
+    </div>
+  </header>
+
+  <div class="banner loading" id="loadingBanner">
+    <div><strong>Carregando…</strong>Buscando dados da planilha.</div>
+  </div>
+
+  <div class="banner error" id="errorBannerWebapp">
+    <div>
+      <strong>Não foi possível carregar os dados pelo app da Web configurado.</strong>
+      Confira:
+      <ul>
+        <li>Se <code>CONFIG.WEBAPP_URL</code> (no topo do <code>&lt;script&gt;</code> deste arquivo) é exatamente a "URL do app da Web" mostrada ao implantar — terminada em <code>/exec</code>.</li>
+        <li>Se você está logado, neste navegador, com uma conta Google da empresa (ex: @bling.com.br) — a implantação exige login quando "Qualquer pessoa" não está disponível.</li>
+        <li>Se o seu e-mail está na propriedade <code>ALLOWED_VIEWERS</code> do script (se ela estiver definida, só os e-mails listados lá recebem os dados).</li>
+        <li>Se <code>CONFIG.WEBAPP_TOKEN</code> aqui é idêntico à propriedade <code>DASHBOARD_TOKEN</code> do script (ou se ambos estão em branco).</li>
+        <li>Se você gerou uma <b>nova implantação</b> depois da última alteração no script (salvar sozinho não republica).</li>
+      </ul>
+      <span style="display:block;margin-top:6px;color:var(--text-muted);font-size:12px;">
+        Veja o passo a passo completo no comentário "API PARA O DASHBOARD" no topo do arquivo ExportarTicketsPE.gs.
+      </span>
+    </div>
+  </div>
+
+  <div class="banner error" id="errorBannerSheet">
+    <div>
+      <strong>Não foi possível carregar os dados da planilha.</strong>
+      Isso geralmente acontece porque a planilha não está compartilhada publicamente para leitura.
+      Você tem duas opções:
+      <ul>
+        <li><b>Recomendado</b> (quando sua organização não permite "Qualquer pessoa com o link"): implante a função <code>doGet</code> incluída em <code>ExportarTicketsPE.gs</code> como um app da Web do Google Apps Script e preencha <code>CONFIG.WEBAPP_URL</code> neste arquivo — veja o passo a passo no comentário "API PARA O DASHBOARD" no topo daquele arquivo.</li>
+        <li>Ou, se sua conta permitir: abra a planilha → <b>Compartilhar</b> → <b>Acesso geral</b> → selecione <b>"Qualquer pessoa com o link"</b>, papel <b>Leitor</b>.</li>
+      </ul>
+      <span style="display:block;margin-top:6px;color:var(--text-muted);font-size:12px;">
+        Atenção com a segunda opção: ela torna a planilha (com dados de clientes e descrições) acessível a qualquer pessoa com o link, mesmo com o dashboard em um repositório privado.
+      </span>
+    </div>
+  </div>
+
+  <section class="kpi-row" id="kpiRow"></section>
+
+  <section class="filters" id="filtersRow">
+    <input type="search" id="fSearch" placeholder="Buscar por chave, resumo, responsável, cliente…">
+    <select id="fStatus"><option value="">Status (todos)</option></select>
+    <select id="fPriority"><option value="">Prioridade (todas)</option></select>
+    <select id="fAssignee"><option value="">Responsável (todos)</option></select>
+    <select id="fPeriod">
+      <option value="">Criado em: qualquer período</option>
+      <option value="7">Criado nos últimos 7 dias</option>
+      <option value="30">Criado nos últimos 30 dias</option>
+      <option value="90">Criado nos últimos 90 dias</option>
+    </select>
+    <button class="clear-link" id="clearFilters">Limpar filtros</button>
+  </section>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Tickets por status</h2>
+      <p class="hint">Quantidade de tickets em cada etapa do fluxo.</p>
+      <div id="chartStatus"></div>
+      <button class="toggle-table" data-target="tableStatus">Ver como tabela</button>
+      <div class="table-view" id="tableStatus"></div>
+    </div>
+    <div class="card">
+      <h2>Tickets por prioridade</h2>
+      <p class="hint">Ordenado da prioridade mais alta para a mais baixa.</p>
+      <div id="chartPriority"></div>
+      <button class="toggle-table" data-target="tablePriority">Ver como tabela</button>
+      <div class="table-view" id="tablePriority"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Tickets por responsável</h2>
+      <p class="hint">Top responsáveis pela quantidade de tickets (demais agrupados em "Outros").</p>
+      <div id="chartAssignee"></div>
+      <button class="toggle-table" data-target="tableAssignee">Ver como tabela</button>
+      <div class="table-view" id="tableAssignee"></div>
+    </div>
+    <div class="card">
+      <h2>Top 10 por RICE Score</h2>
+      <p class="hint">Tickets com maior pontuação RICE calculada. Clique em uma barra para ver o ticket.</p>
+      <div id="chartRice"></div>
+      <button class="toggle-table" data-target="tableRice">Ver como tabela</button>
+      <div class="table-view" id="tableRice"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tickets criados por mês</h2>
+    <p class="hint">Volume de tickets criados, agrupado por mês de criação.</p>
+    <div id="chartTrend"></div>
+    <button class="toggle-table" data-target="tableTrend">Ver como tabela</button>
+    <div class="table-view" id="tableTrend"></div>
+  </div>
+
+  <div class="card">
+    <h2>Todos os tickets</h2>
+    <p class="hint">Clique em uma linha para ver a descrição completa, comentários e histórico do ticket.</p>
+    <div class="table-wrap">
+      <table class="tickets" id="ticketsTable">
+        <thead>
+          <tr>
+            <th data-key="chave">Chave<span class="arrow"></span></th>
+            <th data-key="resumo">Resumo<span class="arrow"></span></th>
+            <th data-key="status">Status<span class="arrow"></span></th>
+            <th data-key="prioridade">Prioridade<span class="arrow"></span></th>
+            <th data-key="responsavel">Responsável<span class="arrow"></span></th>
+            <th data-key="criadoEm">Criado em<span class="arrow"></span></th>
+            <th data-key="atualizadoEm">Atualizado em<span class="arrow"></span></th>
+            <th data-key="rice">RICE<span class="arrow"></span></th>
+            <th data-key="qtdMudancas">Mudanças<span class="arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="ticketsBody"></tbody>
+      </table>
+    </div>
+    <p class="row-count" id="rowCount"></p>
+  </div>
+
+  <footer class="page-footer">
+    Fonte dos dados: <a id="sheetLink" href="#" target="_blank" rel="noopener">planilha no Google Sheets</a> ·
+    Automação de exportação via Google Apps Script · Gerado para o Bling Team
+  </footer>
+
+</div>
+
+<div id="tooltip"></div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalContent" role="dialog" aria-modal="true"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =======================================================================
+     CONFIGURAÇÃO
+     Ajuste aqui se a planilha ou as abas mudarem de nome/posição.
+
+     Como a conta do Google Workspace da empresa pode impedir o
+     compartilhamento "Qualquer pessoa com o link" (Acesso geral só mostra
+     "Restrito"), este dashboard busca os dados de UMA destas duas formas,
+     dando preferência à primeira que estiver configurada:
+
+     1) WEBAPP_URL — um app da Web do Google Apps Script (função doGet,
+        já incluída em ExportarTicketsPE.gs) que lê a planilha com a
+        permissão do dono dela, sem precisar torná-la pública. Veja o
+        comentário "API PARA O DASHBOARD" no topo de ExportarTicketsPE.gs
+        para o passo a passo de implantação. Cole aqui a URL gerada
+        (terminada em /exec) e, se você definiu DASHBOARD_TOKEN no script,
+        o mesmo valor em WEBAPP_TOKEN.
+     2) Se WEBAPP_URL ficar em branco, cai para o método antigo: ler a
+        planilha publicamente via Google Visualization API — só funciona
+        se "Acesso geral" permitir "Qualquer pessoa com o link".
+     ======================================================================= */
+  var CONFIG = {
+    SPREADSHEET_ID: "1i4ffPTVyV4-RckDacT_VV0reZ5Jk6ltYM_6bg6PV44k",
+    GID_TICKETS: "0",            // aba "Página1" (usado só no método 2, planilha pública)
+    GID_HISTORICO: "1549911532", // aba "Histórico" (usado só no método 2, planilha pública)
+    JIRA_BASE_URL: "https://bling-lwsa.atlassian.net",
+
+    // Preencha estes dois para usar o app da Web (recomendado quando a
+    // planilha não pode ser compartilhada publicamente):
+    WEBAPP_URL: "https://script.google.com/a/macros/bling.com.br/s/AKfycbzsplwgLtdCjgyWoCDykUqJt6Sg0l_VbCAiApotgNL5JkqtxQiwSuA4BRCZSy7d4ogfOw/exec",
+    WEBAPP_TOKEN: "321d65s4d87ETFG15Ç412FçDvtç99gdfÇ12DFgdv13dertGFçDFGDGFGPIO512"
+  };
+
+  var TICKET_FIELDS = ["chave","resumo","status","tipo","prioridade","responsavel","relator",
+    "criador","criadoEm","atualizadoEm","rice","clientes","link","qtdMudancas","descricao","comentarios"];
+  var HISTORY_FIELDS = ["chave","data","autor","campo","de","para"];
+
+  var PRIORITY_ORDER = ["highest","alta urgente","mais alta","high","alta","medium","média","media",
+    "low","baixa","lowest","mais baixa"];
+
+  var state = {
+    tickets: [],
+    history: [],
+    filtered: [],
+    sortKey: "criadoEm",
+    sortDir: "desc",
+    statusColors: new Map(),
+    loaded: false
+  };
+
+  document.getElementById("sheetLink").href =
+    "https://docs.google.com/spreadsheets/d/" + CONFIG.SPREADSHEET_ID + "/edit";
+
+  /* =======================================================================
+     TEMA (claro / escuro / sistema)
+     ======================================================================= */
+  (function themeInit() {
+    var saved = null;
+    try { saved = localStorage.getItem("pe-dashboard-theme"); } catch (e) {}
+    var buttons = document.querySelectorAll("#themeSwitch button");
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme")); });
+    });
+    applyTheme(saved || "system");
+    function applyTheme(mode) {
+      if (mode === "system") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", mode);
+      buttons.forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-theme") === mode); });
+      try { localStorage.setItem("pe-dashboard-theme", mode); } catch (e) {}
+    }
+  })();
+
+  /* =======================================================================
+     BUSCA DOS DADOS — via JSONP (tag <script>), nunca via fetch(), para não
+     esbarrar em CORS. Duas fontes possíveis (ver CONFIG acima):
+       - Apps Script Web App (CONFIG.WEBAPP_URL) — planilha pode ficar
+         restrita/privada.
+       - Google Visualization API pública (fallback) — exige a planilha
+         compartilhada como "Qualquer pessoa com o link".
+     ======================================================================= */
+  var jsonpCounter = 0;
+
+  function jsonpRequest(url) {
+    return new Promise(function (resolve, reject) {
+      var cbName = "dashCb_" + (jsonpCounter++) + "_" + Date.now();
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error("timeout"));
+      }, 15000);
+      function cleanup() {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+        clearTimeout(timer);
+      }
+      window[cbName] = function (json) {
+        if (done) return;
+        done = true;
+        cleanup();
+        if (json && json.error) reject(new Error(json.error));
+        else if (json && json.table) resolve(json.table);
+        else reject(new Error("invalid response"));
+      };
+      var script = document.createElement("script");
+      script.src = url + (url.indexOf("?") === -1 ? "?" : "&") + "callback=" + cbName;
+      script.onerror = function () {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error("network error"));
+      };
+      document.body.appendChild(script);
+    });
+  }
+
+  function usingWebApp() { return !!CONFIG.WEBAPP_URL; }
+
+  function fetchSheet(which) {
+    // which: "tickets" | "historico"
+    if (usingWebApp()) {
+      var url = CONFIG.WEBAPP_URL + "?sheet=" + which +
+        (CONFIG.WEBAPP_TOKEN ? "&token=" + encodeURIComponent(CONFIG.WEBAPP_TOKEN) : "");
+      return jsonpRequest(url);
+    }
+    var gid = which === "historico" ? CONFIG.GID_HISTORICO : CONFIG.GID_TICKETS;
+    var gvizUrl = "https://docs.google.com/spreadsheets/d/" + CONFIG.SPREADSHEET_ID +
+      "/gviz/tq?gid=" + gid + "&headers=1&tqx=out:json;responseHandler:__PLACEHOLDER__";
+    // jsonpRequest appends its own callback param; gviz needs it inside tqx
+    // instead, so build this one directly rather than through jsonpRequest.
+    return new Promise(function (resolve, reject) {
+      var cbName = "dashCb_" + (jsonpCounter++) + "_" + Date.now();
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error("timeout"));
+      }, 15000);
+      function cleanup() {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+        clearTimeout(timer);
+      }
+      window[cbName] = function (json) {
+        if (done) return;
+        done = true;
+        cleanup();
+        if (json && json.table) resolve(json.table);
+        else reject(new Error("invalid response"));
+      };
+      var script = document.createElement("script");
+      script.src = gvizUrl.replace("__PLACEHOLDER__", cbName);
+      script.onerror = function () {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error("network error"));
+      };
+      document.body.appendChild(script);
+    });
+  }
+
+  function cellValue(cell) {
+    if (!cell) return { raw: null, text: "" };
+    var v = cell.v, f = cell.f;
+    if (typeof v === "string" && v.indexOf("Date(") === 0) {
+      var m = v.match(/Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)/);
+      if (m) {
+        var d = new Date(+m[1], +m[2], +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+        return { raw: d, text: f || formatDateTime(d) };
+      }
+    }
+    return { raw: v, text: (f !== undefined && f !== null) ? f : (v === null ? "" : String(v)) };
+  }
+
+  function rowToObject(row, fields) {
+    var obj = {};
+    for (var i = 0; i < fields.length; i++) {
+      obj[fields[i]] = cellValue(row.c && row.c[i]);
+    }
+    return obj;
+  }
+
+  function parseFlexibleDate(cellObj) {
+    if (!cellObj) return null;
+    if (cellObj.raw instanceof Date) return cellObj.raw;
+    var s = (cellObj.text || "").trim();
+    if (!s) return null;
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (m) {
+      return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+    }
+    var d2 = new Date(s);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+
+  function parseNumber(cellObj) {
+    if (!cellObj) return null;
+    if (typeof cellObj.raw === "number") return cellObj.raw;
+    var s = (cellObj.text || "").trim().replace(/\./g, "").replace(",", ".");
+    if (!s) return null;
+    var n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  }
+
+  function splitClientes(cellObj) {
+    var s = cellObj ? (cellObj.text || "") : "";
+    return s.split(/[,;\n]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+
+  /* =======================================================================
+     CARREGAMENTO PRINCIPAL
+     ======================================================================= */
+  function loadAll() {
+    document.getElementById("errorBannerWebapp").classList.remove("show");
+    document.getElementById("errorBannerSheet").classList.remove("show");
+    document.getElementById("loadingBanner").classList.add("show");
+    Promise.all([fetchSheet("tickets"), fetchSheet("historico")])
+      .then(function (results) {
+        var ticketTable = results[0], historyTable = results[1];
+        state.tickets = (ticketTable.rows || [])
+          .map(function (r) { return rowToObject(r, TICKET_FIELDS); })
+          .filter(function (t) { return t.chave && t.chave.text; });
+        state.history = (historyTable.rows || [])
+          .map(function (r) { return rowToObject(r, HISTORY_FIELDS); })
+          .filter(function (h) { return h.chave && h.chave.text; });
+        state.loaded = true;
+        document.getElementById("loadingBanner").classList.remove("show");
+        var now = new Date();
+        document.getElementById("metaLine").textContent =
+          state.tickets.length.toLocaleString("pt-BR") + " tickets · " +
+          state.history.length.toLocaleString("pt-BR") + " mudanças registradas · atualizado em " +
+          formatDateTime(now);
+        buildFilterOptions();
+        applyFilters();
+      })
+      .catch(function (err) {
+        document.getElementById("loadingBanner").classList.remove("show");
+        var bannerId = usingWebApp() ? "errorBannerWebapp" : "errorBannerSheet";
+        document.getElementById(bannerId).classList.add("show");
+        document.getElementById("metaLine").textContent = "Não foi possível carregar os dados.";
+        console.error("Falha ao buscar dados:", err);
+      });
+  }
+
+  /* =======================================================================
+     FORMATADORES
+     ======================================================================= */
+  function formatDateTime(d) {
+    if (!d) return "—";
+    return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  function formatDateOnly(d) { return d ? d.toLocaleDateString("pt-BR") : "—"; }
+  function fmtInt(n) { return (n || 0).toLocaleString("pt-BR"); }
+  function fmtRice(n) { return (n === null || n === undefined || isNaN(n)) ? "—" : String(Math.round(n * 10) / 10); }
+  function escapeNode(text) {
+    var span = document.createElement("span");
+    span.textContent = text == null ? "" : String(text);
+    return span;
+  }
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+  function colorForStatus(status) {
+    if (state.statusColors.has(status)) return state.statusColors.get(status);
+    var idx = state.statusColors.size;
+    var color = idx < 8 ? "var(--series-" + (idx + 1) + ")" : "var(--text-muted)";
+    state.statusColors.set(status, color);
+    return color;
+  }
+
+  function priorityRank(p) {
+    var i = PRIORITY_ORDER.indexOf((p || "").trim().toLowerCase());
+    return i === -1 ? 999 : i;
+  }
+
+  /* =======================================================================
+     FILTROS
+     ======================================================================= */
+  function buildFilterOptions() {
+    var statuses = uniqueSorted(state.tickets.map(function (t) { return t.status.text; }));
+    var priorities = uniqueSorted(state.tickets.map(function (t) { return t.prioridade.text; }));
+    priorities.sort(function (a, b) { return priorityRank(a) - priorityRank(b); });
+    var assignees = uniqueSorted(state.tickets.map(function (t) { return t.responsavel.text; }));
+    fillSelect("fStatus", statuses, "Status (todos)");
+    fillSelect("fPriority", priorities, "Prioridade (todas)");
+    fillSelect("fAssignee", assignees, "Responsável (todos)");
+  }
+  function uniqueSorted(arr) {
+    var s = new Set(arr.filter(Boolean));
+    return Array.from(s).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
+  }
+  function fillSelect(id, values, placeholder) {
+    var sel = document.getElementById(id);
+    var current = sel.value;
+    clear(sel);
+    var opt0 = document.createElement("option");
+    opt0.value = ""; opt0.textContent = placeholder;
+    sel.appendChild(opt0);
+    values.forEach(function (v) {
+      var opt = document.createElement("option");
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    });
+    sel.value = current && values.indexOf(current) !== -1 ? current : "";
+  }
+
+  function applyFilters() {
+    var q = document.getElementById("fSearch").value.trim().toLowerCase();
+    var fStatus = document.getElementById("fStatus").value;
+    var fPriority = document.getElementById("fPriority").value;
+    var fAssignee = document.getElementById("fAssignee").value;
+    var fPeriod = document.getElementById("fPeriod").value;
+    var cutoff = fPeriod ? (Date.now() - (+fPeriod) * 86400000) : null;
+
+    state.filtered = state.tickets.filter(function (t) {
+      if (fStatus && t.status.text !== fStatus) return false;
+      if (fPriority && t.prioridade.text !== fPriority) return false;
+      if (fAssignee && t.responsavel.text !== fAssignee) return false;
+      if (cutoff) {
+        var cd = parseFlexibleDate(t.criadoEm);
+        if (!cd || cd.getTime() < cutoff) return false;
+      }
+      if (q) {
+        var hay = [t.chave.text, t.resumo.text, t.responsavel.text, t.relator.text, t.clientes.text]
+          .join(" ").toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    renderAll();
+  }
+
+  ["fSearch"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", debounce(applyFilters, 180));
+  });
+  ["fStatus", "fPriority", "fAssignee", "fPeriod"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", applyFilters);
+  });
+  document.getElementById("clearFilters").addEventListener("click", function () {
+    document.getElementById("fSearch").value = "";
+    document.getElementById("fStatus").value = "";
+    document.getElementById("fPriority").value = "";
+    document.getElementById("fAssignee").value = "";
+    document.getElementById("fPeriod").value = "";
+    applyFilters();
+  });
+  document.getElementById("refreshBtn").addEventListener("click", loadAll);
+
+  function debounce(fn, ms) {
+    var t;
+    return function () { clearTimeout(t); var args = arguments; t = setTimeout(function () { fn.apply(null, args); }, ms); };
+  }
+
+  /* =======================================================================
+     RENDER — ORQUESTRAÇÃO
+     ======================================================================= */
+  function renderAll() {
+    renderKpis();
+    renderStatusChart();
+    renderPriorityChart();
+    renderAssigneeChart();
+    renderRiceChart();
+    renderTrendChart();
+    renderTicketsTable();
+  }
+
+  /* ---------- KPIs ---------- */
+  function renderKpis() {
+    var list = state.filtered;
+    var total = list.length;
+    var clients = new Set();
+    list.forEach(function (t) { splitClientes(t.clientes).forEach(function (c) { clients.add(c); }); });
+    var riceVals = list.map(function (t) { return parseNumber(t.rice); }).filter(function (n) { return n !== null; });
+    var riceAvg = riceVals.length ? riceVals.reduce(function (a, b) { return a + b; }, 0) / riceVals.length : null;
+    var changes = list.reduce(function (a, t) { return a + (parseNumber(t.qtdMudancas) || 0); }, 0);
+    var weekAgo = Date.now() - 7 * 86400000;
+    var updated7 = list.filter(function (t) {
+      var d = parseFlexibleDate(t.atualizadoEm);
+      return d && d.getTime() >= weekAgo;
+    }).length;
+
+    var data = [
+      { label: "Tickets (filtro atual)", value: fmtInt(total) },
+      { label: "Clientes impactados", value: fmtInt(clients.size) },
+      { label: "RICE médio", value: fmtRice(riceAvg) },
+      { label: "Mudanças registradas", value: fmtInt(changes) },
+      { label: "Atualizados últimos 7 dias", value: fmtInt(updated7) }
+    ];
+    var row = document.getElementById("kpiRow");
+    clear(row);
+    data.forEach(function (d) {
+      var card = document.createElement("div");
+      card.className = "kpi";
+      var lab = document.createElement("div"); lab.className = "label"; lab.textContent = d.label;
+      var val = document.createElement("div"); val.className = "value"; val.textContent = d.value;
+      card.appendChild(lab); card.appendChild(val);
+      row.appendChild(card);
+    });
+  }
+
+  /* ---------- Gráfico de barras horizontal (reutilizável) ---------- */
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
+  function roundedRightPath(x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    if (w <= 0) w = 0.01;
+    if (r <= 0) return "M" + x + "," + y + " h" + w + " v" + h + " h" + (-w) + " Z";
+    return "M" + x + "," + y +
+      " h" + (w - r) +
+      " a" + r + "," + r + " 0 0 1 " + r + "," + r +
+      " v" + (h - 2 * r) +
+      " a" + r + "," + r + " 0 0 1 " + (-r) + "," + r +
+      " h" + (-(w - r)) + " Z";
+  }
+
+  function renderBarChart(hostId, tableId, items, opts) {
+    opts = opts || {};
+    var host = document.getElementById(hostId);
+    clear(host);
+    buildTableView(tableId, ["Categoria", "Tickets"], items.map(function (d) { return [d.label, fmtInt(d.value)]; }));
+
+    if (!items.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Sem dados para o filtro atual.";
+      host.appendChild(empty);
+      return;
+    }
+
+    var width = host.clientWidth || 520;
+    var barH = 22, gapY = 14, leftPad = Math.min(170, Math.round(width * 0.34)), rightPad = 54, topPad = 6;
+    var maxVal = Math.max.apply(null, items.map(function (d) { return d.value; })) || 1;
+    var height = items.length * (barH + gapY) - gapY + topPad * 2;
+
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", height);
+    svg.classList.add("bar-chart-svg");
+
+    var barMaxW = Math.max(10, width - leftPad - rightPad);
+
+    items.forEach(function (d, i) {
+      var y = topPad + i * (barH + gapY);
+      var w = Math.max(3, (d.value / maxVal) * barMaxW);
+      var g = document.createElementNS(SVG_NS, "g");
+      g.classList.add("bar-group");
+      if (opts.onClick) g.classList.add("clickable");
+
+      var label = document.createElementNS(SVG_NS, "text");
+      label.setAttribute("x", leftPad - 10);
+      label.setAttribute("y", y + barH / 2 + 4);
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("class", "bar-label");
+      var labelText = d.label.length > 24 ? d.label.slice(0, 23) + "…" : d.label;
+      label.textContent = labelText;
+      g.appendChild(label);
+
+      var path = document.createElementNS(SVG_NS, "path");
+      path.setAttribute("d", roundedRightPath(leftPad, y, w, barH, 4));
+      path.setAttribute("class", "bar-fill");
+      g.appendChild(path);
+
+      var value = document.createElementNS(SVG_NS, "text");
+      value.setAttribute("x", leftPad + w + 8);
+      value.setAttribute("y", y + barH / 2 + 4);
+      value.setAttribute("class", "bar-value");
+      value.textContent = fmtInt(d.value);
+      g.appendChild(value);
+
+      var hit = document.createElementNS(SVG_NS, "rect");
+      hit.setAttribute("x", 0);
+      hit.setAttribute("y", y - 2);
+      hit.setAttribute("width", width);
+      hit.setAttribute("height", barH + 4);
+      hit.setAttribute("class", "bar-hit");
+      g.appendChild(hit);
+
+      g.addEventListener("pointermove", function (ev) { showTooltip(ev, d.label, fmtInt(d.value) + " ticket(s)"); });
+      g.addEventListener("pointerleave", hideTooltip);
+      if (opts.onClick) g.addEventListener("click", function () { opts.onClick(d); });
+
+      svg.appendChild(g);
+    });
+
+    host.appendChild(svg);
+  }
+
+  function buildTableView(id, headers, rows) {
+    var el = document.getElementById(id);
+    clear(el);
+    var table = document.createElement("table");
+    var thead = document.createElement("thead");
+    var tr = document.createElement("tr");
+    headers.forEach(function (h) { var th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
+    thead.appendChild(tr); table.appendChild(thead);
+    var tbody = document.createElement("tbody");
+    rows.forEach(function (r) {
+      var row = document.createElement("tr");
+      r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; row.appendChild(td); });
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    el.appendChild(table);
+  }
+
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".toggle-table");
+    if (!btn) return;
+    var target = document.getElementById(btn.getAttribute("data-target"));
+    var show = !target.classList.contains("show");
+    target.classList.toggle("show", show);
+    btn.textContent = show ? "Ocultar tabela" : "Ver como tabela";
+  });
+
+  /* ---------- Tooltip genérico ---------- */
+  var tooltipEl = document.getElementById("tooltip");
+  function showTooltip(ev, category, value) {
+    clear(tooltipEl);
+    var catEl = document.createElement("div"); catEl.className = "tt-cat"; catEl.textContent = category;
+    var valEl = document.createElement("div"); valEl.className = "tt-val"; valEl.textContent = value;
+    tooltipEl.appendChild(catEl); tooltipEl.appendChild(valEl);
+    tooltipEl.style.display = "block";
+    positionTooltip(ev);
+  }
+  function positionTooltip(ev) {
+    var x = ev.clientX + 14, y = ev.clientY + 14;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    tooltipEl.style.left = Math.min(x, vw - 270) + "px";
+    tooltipEl.style.top = Math.min(y, vh - 70) + "px";
+  }
+  function hideTooltip() { tooltipEl.style.display = "none"; }
+
+  /* ---------- Status ---------- */
+  function renderStatusChart() {
+    var counts = new Map();
+    state.filtered.forEach(function (t) {
+      var s = t.status.text || "(sem status)";
+      counts.set(s, (counts.get(s) || 0) + 1);
+    });
+    var items = Array.from(counts, function (e) { return { label: e[0], value: e[1] }; })
+      .sort(function (a, b) { return b.value - a.value; });
+    renderBarChart("chartStatus", "tableStatus", items, {
+      onClick: function (d) { document.getElementById("fStatus").value = d.label; applyFilters(); }
+    });
+  }
+
+  /* ---------- Prioridade ---------- */
+  function renderPriorityChart() {
+    var counts = new Map();
+    state.filtered.forEach(function (t) {
+      var p = t.prioridade.text || "(sem prioridade)";
+      counts.set(p, (counts.get(p) || 0) + 1);
+    });
+    var items = Array.from(counts, function (e) { return { label: e[0], value: e[1] }; })
+      .sort(function (a, b) { return priorityRank(a.label) - priorityRank(b.label); });
+    renderBarChart("chartPriority", "tablePriority", items, {
+      onClick: function (d) { document.getElementById("fPriority").value = d.label; applyFilters(); }
+    });
+  }
+
+  /* ---------- Responsável ---------- */
+  function renderAssigneeChart() {
+    var counts = new Map();
+    state.filtered.forEach(function (t) {
+      var a = t.responsavel.text || "(sem responsável)";
+      counts.set(a, (counts.get(a) || 0) + 1);
+    });
+    var items = Array.from(counts, function (e) { return { label: e[0], value: e[1] }; })
+      .sort(function (a, b) { return b.value - a.value; });
+    var top = items.slice(0, 7);
+    var rest = items.slice(7);
+    if (rest.length) {
+      var othersTotal = rest.reduce(function (a, d) { return a + d.value; }, 0);
+      top.push({ label: "Outros (" + rest.length + ")", value: othersTotal });
+    }
+    renderBarChart("chartAssignee", "tableAssignee", top, {
+      onClick: function (d) {
+        if (d.label.indexOf("Outros") === 0) return;
+        document.getElementById("fAssignee").value = d.label; applyFilters();
+      }
+    });
+  }
+
+  /* ---------- RICE ---------- */
+  function renderRiceChart() {
+    var withRice = state.filtered
+      .map(function (t) { return { t: t, rice: parseNumber(t.rice) }; })
+      .filter(function (x) { return x.rice !== null; })
+      .sort(function (a, b) { return b.rice - a.rice; })
+      .slice(0, 10);
+    var items = withRice.map(function (x) { return { label: x.t.chave.text, value: x.rice, ticket: x.t }; });
+    renderBarChart("chartRice", "tableRice", items, {
+      onClick: function (d) { openTicketModal(d.ticket); }
+    });
+  }
+
+  /* ---------- Tendência (linha) ---------- */
+  function renderTrendChart() {
+    var hostId = "chartTrend", tableId = "tableTrend";
+    var host = document.getElementById(hostId);
+    clear(host);
+
+    var buckets = new Map();
+    state.filtered.forEach(function (t) {
+      var d = parseFlexibleDate(t.criadoEm);
+      if (!d) return;
+      var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      buckets.set(key, (buckets.get(key) || 0) + 1);
+    });
+    var keys = Array.from(buckets.keys()).sort();
+    var items = keys.map(function (k) { return { label: monthLabel(k), value: buckets.get(k) }; });
+    buildTableView(tableId, ["Mês", "Tickets criados"], items.map(function (d) { return [d.label, fmtInt(d.value)]; }));
+
+    if (items.length < 2) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Dados insuficientes para montar a tendência.";
+      host.appendChild(empty);
+      return;
+    }
+
+    var width = host.clientWidth || 1000;
+    var height = 220, padL = 44, padR = 28, padT = 20, padB = 30;
+    var rawMax = Math.max.apply(null, items.map(function (d) { return d.value; })) || 1;
+    var niceMax = niceAxisMax(rawMax, 4);
+    var plotW = width - padL - padR, plotH = height - padT - padB;
+    var stepX = items.length > 1 ? plotW / (items.length - 1) : 0;
+
+    function xFor(i) { return padL + i * stepX; }
+    function yFor(v) { return padT + plotH - (v / niceMax) * plotH; }
+
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", height);
+    svg.setAttribute("overflow", "visible");
+
+    // gridlines (nice, non-repeating integer steps)
+    var ticks = niceAxisTicks(niceMax, 4);
+    ticks.forEach(function (gv) {
+      var gy = yFor(gv);
+      var gl = document.createElementNS(SVG_NS, "line");
+      gl.setAttribute("x1", padL); gl.setAttribute("x2", width - padR);
+      gl.setAttribute("y1", gy); gl.setAttribute("y2", gy);
+      gl.setAttribute("class", "line-grid");
+      svg.appendChild(gl);
+      var gt = document.createElementNS(SVG_NS, "text");
+      gt.setAttribute("x", padL - 8); gt.setAttribute("y", gy + 3);
+      gt.setAttribute("text-anchor", "end"); gt.setAttribute("class", "line-axis-text");
+      gt.textContent = fmtInt(gv);
+      svg.appendChild(gt);
+    });
+
+    var pathD = items.map(function (d, i) { return (i === 0 ? "M" : "L") + xFor(i) + "," + yFor(d.value); }).join(" ");
+    var path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", pathD);
+    path.setAttribute("class", "line-path");
+    svg.appendChild(path);
+
+    items.forEach(function (d, i) {
+      var cx = xFor(i), cy = yFor(d.value);
+      var dot = document.createElementNS(SVG_NS, "circle");
+      dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", 4);
+      dot.setAttribute("class", "line-dot");
+      svg.appendChild(dot);
+
+      if (i === items.length - 1) {
+        var lab = document.createElementNS(SVG_NS, "text");
+        lab.setAttribute("x", Math.min(cx, width - 4)); lab.setAttribute("y", Math.max(cy - 10, padT - 6));
+        lab.setAttribute("text-anchor", "end"); lab.setAttribute("class", "bar-value");
+        lab.textContent = fmtInt(d.value);
+        svg.appendChild(lab);
+      }
+
+      if (i % Math.ceil(items.length / 10 || 1) === 0 || i === items.length - 1) {
+        var isFirst = i === 0, isLast = i === items.length - 1;
+        var xt = document.createElementNS(SVG_NS, "text");
+        xt.setAttribute("x", cx);
+        xt.setAttribute("y", height - 8);
+        xt.setAttribute("text-anchor", isFirst ? "start" : (isLast ? "end" : "middle"));
+        xt.setAttribute("class", "line-axis-text");
+        xt.textContent = d.label;
+        svg.appendChild(xt);
+      }
+
+      var hit = document.createElementNS(SVG_NS, "circle");
+      hit.setAttribute("cx", cx); hit.setAttribute("cy", cy); hit.setAttribute("r", 14);
+      hit.setAttribute("fill", "transparent");
+      hit.addEventListener("pointermove", function (ev) { showTooltip(ev, d.label, fmtInt(d.value) + " ticket(s) criado(s)"); });
+      hit.addEventListener("pointerleave", hideTooltip);
+      svg.appendChild(hit);
+    });
+
+    host.appendChild(svg);
+  }
+
+  function niceAxisMax(rawMax, targetTicks) {
+    if (rawMax <= targetTicks) return targetTicks; // small integer ranges: keep 1-per-step, avoids dup rounding
+    var roughStep = rawMax / targetTicks;
+    var mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
+    var norm = roughStep / mag;
+    var niceNorm = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+    var step = niceNorm * mag;
+    return Math.ceil(rawMax / step) * step;
+  }
+  function niceAxisTicks(niceMax, targetTicks) {
+    var ticks = [];
+    for (var i = 0; i <= targetTicks; i++) ticks.push(Math.round((niceMax / targetTicks) * i));
+    return ticks;
+  }
+
+  function monthLabel(key) {
+    var parts = key.split("-");
+    var d = new Date(+parts[0], +parts[1] - 1, 1);
+    return d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+  }
+
+  /* ---------- Tabela de tickets ---------- */
+  function renderTicketsTable() {
+    var tbody = document.getElementById("ticketsBody");
+    clear(tbody);
+
+    var list = state.filtered.slice().sort(function (a, b) {
+      return compareBy(a, b, state.sortKey) * (state.sortDir === "asc" ? 1 : -1);
+    });
+
+    list.forEach(function (t) {
+      var tr = document.createElement("tr");
+
+      var tdKey = document.createElement("td"); tdKey.className = "key"; tdKey.textContent = t.chave.text;
+      var tdSummary = document.createElement("td"); tdSummary.className = "summary"; tdSummary.textContent = t.resumo.text;
+
+      var tdStatus = document.createElement("td");
+      tdStatus.appendChild(makeChip(t.status.text || "—", colorForStatus(t.status.text)));
+
+      var tdPriority = document.createElement("td"); tdPriority.textContent = t.prioridade.text || "—";
+      var tdAssignee = document.createElement("td"); tdAssignee.textContent = t.responsavel.text || "—";
+      var tdCreated = document.createElement("td"); tdCreated.textContent = formatDateOnly(parseFlexibleDate(t.criadoEm));
+      var tdUpdated = document.createElement("td"); tdUpdated.textContent = formatDateOnly(parseFlexibleDate(t.atualizadoEm));
+      var tdRice = document.createElement("td"); tdRice.textContent = fmtRice(parseNumber(t.rice));
+      var tdChanges = document.createElement("td"); tdChanges.textContent = fmtInt(parseNumber(t.qtdMudancas) || 0);
+
+      [tdKey, tdSummary, tdStatus, tdPriority, tdAssignee, tdCreated, tdUpdated, tdRice, tdChanges]
+        .forEach(function (td) { tr.appendChild(td); });
+
+      tr.addEventListener("click", function () { openTicketModal(t); });
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("rowCount").textContent =
+      fmtInt(list.length) + " de " + fmtInt(state.tickets.length) + " tickets exibidos";
+
+    updateSortArrows();
+  }
+
+  function makeChip(text, colorVar) {
+    var span = document.createElement("span"); span.className = "chip";
+    var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = colorVar;
+    var label = document.createElement("span"); label.textContent = text;
+    span.appendChild(dot); span.appendChild(label);
+    return span;
+  }
+
+  function compareBy(a, b, key) {
+    if (key === "criadoEm" || key === "atualizadoEm") {
+      var da = parseFlexibleDate(a[key]), db = parseFlexibleDate(b[key]);
+      return (da ? da.getTime() : -Infinity) - (db ? db.getTime() : -Infinity);
+    }
+    if (key === "rice" || key === "qtdMudancas") {
+      var na = parseNumber(a[key]), nb = parseNumber(b[key]);
+      return (na === null ? -Infinity : na) - (nb === null ? -Infinity : nb);
+    }
+    return (a[key].text || "").localeCompare(b[key].text || "", "pt-BR");
+  }
+
+  document.querySelectorAll("table.tickets thead th").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.getAttribute("data-key");
+      if (state.sortKey === key) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+      else { state.sortKey = key; state.sortDir = key === "criadoEm" || key === "atualizadoEm" || key === "rice" ? "desc" : "asc"; }
+      renderTicketsTable();
+    });
+  });
+  function updateSortArrows() {
+    document.querySelectorAll("table.tickets thead th").forEach(function (th) {
+      var arrow = th.querySelector(".arrow");
+      var key = th.getAttribute("data-key");
+      arrow.textContent = key === state.sortKey ? (state.sortDir === "asc" ? "▲" : "▼") : "";
+    });
+  }
+
+  /* =======================================================================
+     MODAL DE DETALHES DO TICKET
+     ======================================================================= */
+  var backdrop = document.getElementById("modalBackdrop");
+  var modalContent = document.getElementById("modalContent");
+
+  function openTicketModal(t) {
+    clear(modalContent);
+
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "close-x"; closeBtn.textContent = "×"; closeBtn.setAttribute("aria-label", "Fechar");
+    closeBtn.addEventListener("click", closeModal);
+    modalContent.appendChild(closeBtn);
+
+    var h2 = document.createElement("h2"); h2.textContent = t.chave.text + " — " + t.resumo.text;
+    modalContent.appendChild(h2);
+
+    var sub = document.createElement("p"); sub.className = "modal-sub";
+    var link = t.link.text || (CONFIG.JIRA_BASE_URL + "/browse/" + t.chave.text);
+    sub.appendChild(document.createTextNode("Abrir no Jira: "));
+    var a = document.createElement("a"); a.href = link; a.target = "_blank"; a.rel = "noopener";
+    a.style.color = "var(--series-1)"; a.textContent = link;
+    sub.appendChild(a);
+    modalContent.appendChild(sub);
+
+    var meta = document.createElement("div"); meta.className = "modal-meta";
+    [
+      ["Status", t.status.text], ["Tipo", t.tipo.text], ["Prioridade", t.prioridade.text],
+      ["Responsável", t.responsavel.text], ["Relator", t.relator.text], ["Criador (Jira)", t.criador.text],
+      ["Criado em", formatDateTime(parseFlexibleDate(t.criadoEm))],
+      ["Atualizado em", formatDateTime(parseFlexibleDate(t.atualizadoEm))],
+      ["RICE Score", fmtRice(parseNumber(t.rice))],
+      ["Clientes", t.clientes.text || "—"],
+      ["Mudanças registradas", fmtInt(parseNumber(t.qtdMudancas) || 0)]
+    ].forEach(function (pair) {
+      var div = document.createElement("div");
+      var b = document.createElement("b"); b.textContent = pair[0] + ": ";
+      div.appendChild(b); div.appendChild(document.createTextNode(pair[1] || "—"));
+      meta.appendChild(div);
+    });
+    modalContent.appendChild(meta);
+
+    modalContent.appendChild(buildClampSection("Descrição", t.descricao.text));
+    modalContent.appendChild(buildClampSection("Comentários", t.comentarios.text));
+    modalContent.appendChild(buildHistorySection(t.chave.text));
+
+    backdrop.classList.add("show");
+  }
+
+  function buildClampSection(title, text) {
+    var section = document.createElement("section");
+    var h3 = document.createElement("h3"); h3.textContent = title;
+    section.appendChild(h3);
+    if (!text) {
+      var p = document.createElement("p"); p.style.color = "var(--text-muted)"; p.style.fontSize = "13px";
+      p.textContent = "Sem conteúdo.";
+      section.appendChild(p);
+      return section;
+    }
+    var box = document.createElement("div"); box.className = "clamp-box";
+    box.textContent = text;
+    var needsClamp = text.length > 400;
+    if (needsClamp) box.classList.add("has-fade");
+    section.appendChild(box);
+    if (needsClamp) {
+      var toggle = document.createElement("button");
+      toggle.className = "clamp-toggle"; toggle.textContent = "Ver mais";
+      toggle.addEventListener("click", function () {
+        var expanded = box.classList.toggle("expanded");
+        toggle.textContent = expanded ? "Ver menos" : "Ver mais";
+      });
+      section.appendChild(toggle);
+    }
+    return section;
+  }
+
+  function buildHistorySection(chave) {
+    var section = document.createElement("section");
+    var h3 = document.createElement("h3"); h3.textContent = "Histórico de mudanças";
+    section.appendChild(h3);
+    var items = state.history.filter(function (h) { return h.chave.text === chave; })
+      .sort(function (a, b) {
+        var da = parseFlexibleDate(a.data), db = parseFlexibleDate(b.data);
+        return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+      });
+    if (!items.length) {
+      var p = document.createElement("p"); p.style.color = "var(--text-muted)"; p.style.fontSize = "13px";
+      p.textContent = "Nenhuma mudança registrada.";
+      section.appendChild(p);
+      return section;
+    }
+    items.slice().reverse().forEach(function (h) {
+      var item = document.createElement("div"); item.className = "history-item";
+      var top = document.createElement("div"); top.className = "h-top";
+      top.textContent = formatDateTime(parseFlexibleDate(h.data)) + " · " + (h.autor.text || "—");
+      var field = document.createElement("div"); field.className = "h-field"; field.textContent = h.campo.text || "—";
+      var change = document.createElement("div"); change.className = "h-change";
+
+      var de = (h.de.text || "(vazio)"), para = (h.para.text || "(vazio)");
+      var longChange = (de.length + para.length) > 240;
+      if (!longChange) {
+        var deSpan = document.createElement("span"); deSpan.textContent = de;
+        var arrow = document.createElement("span"); arrow.className = "arrow"; arrow.textContent = "→";
+        var paraSpan = document.createElement("span"); paraSpan.textContent = para;
+        change.appendChild(deSpan); change.appendChild(arrow); change.appendChild(paraSpan);
+        item.appendChild(top); item.appendChild(field); item.appendChild(change);
+      } else {
+        item.appendChild(top); item.appendChild(field);
+        var box = document.createElement("div"); box.className = "clamp-box has-fade"; box.style.maxHeight = "70px";
+        box.textContent = "De: " + de + "\n\nPara: " + para;
+        var toggle = document.createElement("button");
+        toggle.className = "clamp-toggle"; toggle.textContent = "Ver mais";
+        toggle.addEventListener("click", function () {
+          var expanded = box.classList.toggle("expanded");
+          toggle.textContent = expanded ? "Ver menos" : "Ver mais";
+        });
+        item.appendChild(box); item.appendChild(toggle);
+      }
+      section.appendChild(item);
+    });
+    return section;
+  }
+
+  function closeModal() { backdrop.classList.remove("show"); }
+  backdrop.addEventListener("click", function (ev) { if (ev.target === backdrop) closeModal(); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeModal(); });
+
+  /* =======================================================================
+     RESIZE — redesenha gráficos SVG ao mudar a largura da janela
+     ======================================================================= */
+  window.addEventListener("resize", debounce(function () {
+    if (state.loaded) renderAll();
+  }, 200));
+
+  /* =======================================================================
+     START
+     ======================================================================= */
+  loadAll();
+
+})();
+</script>
+</body>
+</html>
