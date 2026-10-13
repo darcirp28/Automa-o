@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard — Tickets PE</title>
+<title>Dashboard  -  Tickets PE</title>
 <style>
   /* =========================================================================
      CONFIG (edite aqui se precisar)
@@ -239,7 +239,7 @@
 
   <header class="top">
     <div>
-      <h1>Dashboard de Tickets — Projeto PE</h1>
+      <h1>Dashboard de Tickets  -  Projeto PE</h1>
       <p class="sub">Dados carregados ao vivo da planilha do Google Sheets gerada pela automação diária.</p>
       <p class="meta-line" id="metaLine">Carregando dados…</p>
     </div>
@@ -262,12 +262,18 @@
       <strong>Não foi possível carregar os dados pelo app da Web configurado.</strong>
       Confira:
       <ul>
-        <li>Se <code>CONFIG.WEBAPP_URL</code> (no topo do <code>&lt;script&gt;</code> deste arquivo) é exatamente a "URL do app da Web" mostrada ao implantar — terminada em <code>/exec</code>.</li>
-        <li>Se você está logado, neste navegador, com uma conta Google da empresa (ex: @bling.com.br) — a implantação exige login quando "Qualquer pessoa" não está disponível.</li>
+        <li>Se <code>CONFIG.WEBAPP_URL</code> (no topo do <code>&lt;script&gt;</code> deste arquivo) é exatamente a "URL do app da Web" mostrada ao implantar  -  terminada em <code>/exec</code>.</li>
+        <li>Se você está logado, neste navegador, com uma conta Google da empresa (ex: @bling.com.br)  -  a implantação exige login quando "Qualquer pessoa" não está disponível.</li>
         <li>Se o seu e-mail está na propriedade <code>ALLOWED_VIEWERS</code> do script (se ela estiver definida, só os e-mails listados lá recebem os dados).</li>
         <li>Se <code>CONFIG.WEBAPP_TOKEN</code> aqui é idêntico à propriedade <code>DASHBOARD_TOKEN</code> do script (ou se ambos estão em branco).</li>
         <li>Se você gerou uma <b>nova implantação</b> depois da última alteração no script (salvar sozinho não republica).</li>
       </ul>
+      <p style="margin:10px 0 2px;">
+        Causa mais comum: a busca "de fundo" não leva o seu login do Google quando o dashboard está em outro
+        site (como o GitHub Pages). Clique no botão abaixo para autorizar em uma janela  -  ela abre, confirma seu
+        login e fecha sozinha.
+      </p>
+      <button class="btn primary" id="authorizeWebappBtn" type="button" style="margin-top:6px;">Autorizar acesso em uma janela</button>
       <span style="display:block;margin-top:6px;color:var(--text-muted);font-size:12px;">
         Veja o passo a passo completo no comentário "API PARA O DASHBOARD" no topo do arquivo ExportarTicketsPE.gs.
       </span>
@@ -280,7 +286,7 @@
       Isso geralmente acontece porque a planilha não está compartilhada publicamente para leitura.
       Você tem duas opções:
       <ul>
-        <li><b>Recomendado</b> (quando sua organização não permite "Qualquer pessoa com o link"): implante a função <code>doGet</code> incluída em <code>ExportarTicketsPE.gs</code> como um app da Web do Google Apps Script e preencha <code>CONFIG.WEBAPP_URL</code> neste arquivo — veja o passo a passo no comentário "API PARA O DASHBOARD" no topo daquele arquivo.</li>
+        <li><b>Recomendado</b> (quando sua organização não permite "Qualquer pessoa com o link"): implante a função <code>doGet</code> incluída em <code>ExportarTicketsPE.gs</code> como um app da Web do Google Apps Script e preencha <code>CONFIG.WEBAPP_URL</code> neste arquivo  -  veja o passo a passo no comentário "API PARA O DASHBOARD" no topo daquele arquivo.</li>
         <li>Ou, se sua conta permitir: abra a planilha → <b>Compartilhar</b> → <b>Acesso geral</b> → selecione <b>"Qualquer pessoa com o link"</b>, papel <b>Leitor</b>.</li>
       </ul>
       <span style="display:block;margin-top:6px;color:var(--text-muted);font-size:12px;">
@@ -397,7 +403,7 @@
      "Restrito"), este dashboard busca os dados de UMA destas duas formas,
      dando preferência à primeira que estiver configurada:
 
-     1) WEBAPP_URL — um app da Web do Google Apps Script (função doGet,
+     1) WEBAPP_URL  -  um app da Web do Google Apps Script (função doGet,
         já incluída em ExportarTicketsPE.gs) que lê a planilha com a
         permissão do dono dela, sem precisar torná-la pública. Veja o
         comentário "API PARA O DASHBOARD" no topo de ExportarTicketsPE.gs
@@ -405,7 +411,7 @@
         (terminada em /exec) e, se você definiu DASHBOARD_TOKEN no script,
         o mesmo valor em WEBAPP_TOKEN.
      2) Se WEBAPP_URL ficar em branco, cai para o método antigo: ler a
-        planilha publicamente via Google Visualization API — só funciona
+        planilha publicamente via Google Visualization API  -  só funciona
         se "Acesso geral" permitir "Qualquer pessoa com o link".
      ======================================================================= */
   var CONFIG = {
@@ -460,11 +466,11 @@
   })();
 
   /* =======================================================================
-     BUSCA DOS DADOS — via JSONP (tag <script>), nunca via fetch(), para não
+     BUSCA DOS DADOS  -  via JSONP (tag <script>), nunca via fetch(), para não
      esbarrar em CORS. Duas fontes possíveis (ver CONFIG acima):
-       - Apps Script Web App (CONFIG.WEBAPP_URL) — planilha pode ficar
+       - Apps Script Web App (CONFIG.WEBAPP_URL)  -  planilha pode ficar
          restrita/privada.
-       - Google Visualization API pública (fallback) — exige a planilha
+       - Google Visualization API pública (fallback)  -  exige a planilha
          compartilhada como "Qualquer pessoa com o link".
      ======================================================================= */
   var jsonpCounter = 0;
@@ -505,6 +511,52 @@
   }
 
   function usingWebApp() { return !!CONFIG.WEBAPP_URL; }
+
+  /* -----------------------------------------------------------------------
+     "Modo janela": quando o app da Web exige login do domínio, uma busca
+     de fundo via <script src> entre sites diferentes (ex: github.io ->
+     script.google.com) não carrega o cookie de login do Google  -  o
+     navegador trata como requisição entre sites e o Google redireciona
+     para a tela de login, que falha por não poder ser exibida dentro de
+     um <script>. Abrir uma janela de verdade (window.open) resolve, porque
+     aí é uma navegação completa e o login é reconhecido normalmente  - 
+     veja o comentário de doGet em ExportarTicketsPE.gs.
+     Só pode ser chamada a partir de um clique do usuário (senão o
+     navegador bloqueia o pop-up).
+     ----------------------------------------------------------------------- */
+  function openWebAppPopup() {
+    return new Promise(function (resolve, reject) {
+      if (!usingWebApp()) { reject(new Error("sem WEBAPP_URL configurado")); return; }
+      var origin = window.location.origin;
+      var url = CONFIG.WEBAPP_URL + "?sheet=all&out=postmessage&origin=" + encodeURIComponent(origin) +
+        (CONFIG.WEBAPP_TOKEN ? "&token=" + encodeURIComponent(CONFIG.WEBAPP_TOKEN) : "");
+      var popup = window.open(url, "dashboardPeAuth", "width=480,height=420");
+      if (!popup) {
+        reject(new Error("popup-blocked"));
+        return;
+      }
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        window.removeEventListener("message", onMessage);
+        try { popup.close(); } catch (e) {}
+        reject(new Error("timeout"));
+      }, 60000);
+      function onMessage(event) {
+        if (!event.data || event.data.source !== "dashboard-pe") return;
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        window.removeEventListener("message", onMessage);
+        var payload = event.data.payload;
+        if (payload && payload.error) reject(new Error(payload.error));
+        else if (payload && payload.tickets && payload.historico) resolve(payload);
+        else reject(new Error("invalid response"));
+      }
+      window.addEventListener("message", onMessage);
+    });
+  }
 
   function fetchSheet(which) {
     // which: "tickets" | "historico"
@@ -602,28 +654,31 @@
   /* =======================================================================
      CARREGAMENTO PRINCIPAL
      ======================================================================= */
+  function applyLoadedData(ticketTable, historyTable) {
+    state.tickets = (ticketTable.rows || [])
+      .map(function (r) { return rowToObject(r, TICKET_FIELDS); })
+      .filter(function (t) { return t.chave && t.chave.text; });
+    state.history = (historyTable.rows || [])
+      .map(function (r) { return rowToObject(r, HISTORY_FIELDS); })
+      .filter(function (h) { return h.chave && h.chave.text; });
+    state.loaded = true;
+    document.getElementById("loadingBanner").classList.remove("show");
+    var now = new Date();
+    document.getElementById("metaLine").textContent =
+      state.tickets.length.toLocaleString("pt-BR") + " tickets · " +
+      state.history.length.toLocaleString("pt-BR") + " mudanças registradas · atualizado em " +
+      formatDateTime(now);
+    buildFilterOptions();
+    applyFilters();
+  }
+
   function loadAll() {
     document.getElementById("errorBannerWebapp").classList.remove("show");
     document.getElementById("errorBannerSheet").classList.remove("show");
     document.getElementById("loadingBanner").classList.add("show");
     Promise.all([fetchSheet("tickets"), fetchSheet("historico")])
       .then(function (results) {
-        var ticketTable = results[0], historyTable = results[1];
-        state.tickets = (ticketTable.rows || [])
-          .map(function (r) { return rowToObject(r, TICKET_FIELDS); })
-          .filter(function (t) { return t.chave && t.chave.text; });
-        state.history = (historyTable.rows || [])
-          .map(function (r) { return rowToObject(r, HISTORY_FIELDS); })
-          .filter(function (h) { return h.chave && h.chave.text; });
-        state.loaded = true;
-        document.getElementById("loadingBanner").classList.remove("show");
-        var now = new Date();
-        document.getElementById("metaLine").textContent =
-          state.tickets.length.toLocaleString("pt-BR") + " tickets · " +
-          state.history.length.toLocaleString("pt-BR") + " mudanças registradas · atualizado em " +
-          formatDateTime(now);
-        buildFilterOptions();
-        applyFilters();
+        applyLoadedData(results[0], results[1]);
       })
       .catch(function (err) {
         document.getElementById("loadingBanner").classList.remove("show");
@@ -634,16 +689,47 @@
       });
   }
 
+  /* "Modo janela": usado quando a busca de fundo (JSONP) falha por causa do
+     bloqueio entre sites (ver openWebAppPopup acima). Precisa ser chamada
+     diretamente a partir de um clique do usuário. */
+  function loadAllViaPopup() {
+    document.getElementById("errorBannerWebapp").classList.remove("show");
+    document.getElementById("errorBannerSheet").classList.remove("show");
+    document.getElementById("loadingBanner").classList.add("show");
+    var bannerText = document.querySelector("#loadingBanner div");
+    if (bannerText) bannerText.innerHTML = "<strong>Autorizando…</strong>Uma pequena janela do Google vai abrir e fechar sozinha  -  não feche-a na mão.";
+    return openWebAppPopup()
+      .then(function (payload) {
+        applyLoadedData(payload.tickets, payload.historico);
+        try { localStorage.setItem("pe-dashboard-use-popup", "1"); } catch (e) {}
+      })
+      .catch(function (err) {
+        document.getElementById("loadingBanner").classList.remove("show");
+        document.getElementById("errorBannerWebapp").classList.add("show");
+        document.getElementById("metaLine").textContent = "Não foi possível carregar os dados.";
+        console.error("Falha ao autorizar via janela:", err);
+      })
+      .then(function () {
+        var bannerText2 = document.querySelector("#loadingBanner div");
+        if (bannerText2) bannerText2.innerHTML = "<strong>Carregando…</strong>Buscando dados da planilha.";
+      });
+  }
+
+  function shouldUsePopupFirst() {
+    if (!usingWebApp()) return false;
+    try { return localStorage.getItem("pe-dashboard-use-popup") === "1"; } catch (e) { return false; }
+  }
+
   /* =======================================================================
      FORMATADORES
      ======================================================================= */
   function formatDateTime(d) {
-    if (!d) return "—";
+    if (!d) return " - ";
     return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   }
-  function formatDateOnly(d) { return d ? d.toLocaleDateString("pt-BR") : "—"; }
+  function formatDateOnly(d) { return d ? d.toLocaleDateString("pt-BR") : " - "; }
   function fmtInt(n) { return (n || 0).toLocaleString("pt-BR"); }
-  function fmtRice(n) { return (n === null || n === undefined || isNaN(n)) ? "—" : String(Math.round(n * 10) / 10); }
+  function fmtRice(n) { return (n === null || n === undefined || isNaN(n)) ? " - " : String(Math.round(n * 10) / 10); }
   function escapeNode(text) {
     var span = document.createElement("span");
     span.textContent = text == null ? "" : String(text);
@@ -736,7 +822,11 @@
     document.getElementById("fPeriod").value = "";
     applyFilters();
   });
-  document.getElementById("refreshBtn").addEventListener("click", loadAll);
+  document.getElementById("refreshBtn").addEventListener("click", function () {
+    if (shouldUsePopupFirst()) loadAllViaPopup();
+    else loadAll();
+  });
+  document.getElementById("authorizeWebappBtn").addEventListener("click", loadAllViaPopup);
 
   function debounce(fn, ms) {
     var t;
@@ -744,7 +834,7 @@
   }
 
   /* =======================================================================
-     RENDER — ORQUESTRAÇÃO
+     RENDER  -  ORQUESTRAÇÃO
      ======================================================================= */
   function renderAll() {
     renderKpis();
@@ -1124,10 +1214,10 @@
       var tdSummary = document.createElement("td"); tdSummary.className = "summary"; tdSummary.textContent = t.resumo.text;
 
       var tdStatus = document.createElement("td");
-      tdStatus.appendChild(makeChip(t.status.text || "—", colorForStatus(t.status.text)));
+      tdStatus.appendChild(makeChip(t.status.text || " - ", colorForStatus(t.status.text)));
 
-      var tdPriority = document.createElement("td"); tdPriority.textContent = t.prioridade.text || "—";
-      var tdAssignee = document.createElement("td"); tdAssignee.textContent = t.responsavel.text || "—";
+      var tdPriority = document.createElement("td"); tdPriority.textContent = t.prioridade.text || " - ";
+      var tdAssignee = document.createElement("td"); tdAssignee.textContent = t.responsavel.text || " - ";
       var tdCreated = document.createElement("td"); tdCreated.textContent = formatDateOnly(parseFlexibleDate(t.criadoEm));
       var tdUpdated = document.createElement("td"); tdUpdated.textContent = formatDateOnly(parseFlexibleDate(t.atualizadoEm));
       var tdRice = document.createElement("td"); tdRice.textContent = fmtRice(parseNumber(t.rice));
@@ -1196,7 +1286,7 @@
     closeBtn.addEventListener("click", closeModal);
     modalContent.appendChild(closeBtn);
 
-    var h2 = document.createElement("h2"); h2.textContent = t.chave.text + " — " + t.resumo.text;
+    var h2 = document.createElement("h2"); h2.textContent = t.chave.text + "  -  " + t.resumo.text;
     modalContent.appendChild(h2);
 
     var sub = document.createElement("p"); sub.className = "modal-sub";
@@ -1214,12 +1304,12 @@
       ["Criado em", formatDateTime(parseFlexibleDate(t.criadoEm))],
       ["Atualizado em", formatDateTime(parseFlexibleDate(t.atualizadoEm))],
       ["RICE Score", fmtRice(parseNumber(t.rice))],
-      ["Clientes", t.clientes.text || "—"],
+      ["Clientes", t.clientes.text || " - "],
       ["Mudanças registradas", fmtInt(parseNumber(t.qtdMudancas) || 0)]
     ].forEach(function (pair) {
       var div = document.createElement("div");
       var b = document.createElement("b"); b.textContent = pair[0] + ": ";
-      div.appendChild(b); div.appendChild(document.createTextNode(pair[1] || "—"));
+      div.appendChild(b); div.appendChild(document.createTextNode(pair[1] || " - "));
       meta.appendChild(div);
     });
     modalContent.appendChild(meta);
@@ -1276,8 +1366,8 @@
     items.slice().reverse().forEach(function (h) {
       var item = document.createElement("div"); item.className = "history-item";
       var top = document.createElement("div"); top.className = "h-top";
-      top.textContent = formatDateTime(parseFlexibleDate(h.data)) + " · " + (h.autor.text || "—");
-      var field = document.createElement("div"); field.className = "h-field"; field.textContent = h.campo.text || "—";
+      top.textContent = formatDateTime(parseFlexibleDate(h.data)) + " · " + (h.autor.text || " - ");
+      var field = document.createElement("div"); field.className = "h-field"; field.textContent = h.campo.text || " - ";
       var change = document.createElement("div"); change.className = "h-change";
 
       var de = (h.de.text || "(vazio)"), para = (h.para.text || "(vazio)");
@@ -1310,7 +1400,7 @@
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeModal(); });
 
   /* =======================================================================
-     RESIZE — redesenha gráficos SVG ao mudar a largura da janela
+     RESIZE  -  redesenha gráficos SVG ao mudar a largura da janela
      ======================================================================= */
   window.addEventListener("resize", debounce(function () {
     if (state.loaded) renderAll();
