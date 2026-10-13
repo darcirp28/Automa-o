@@ -580,11 +580,81 @@ function jsonp(url, ms = 90000) {
 }
 function rowsFromB64(f) {
   const bin = atob(f.b64);
+  if (f.ext === 'json') return JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
   if (f.ext === 'csv') {
     const txt = new TextDecoder('utf-8').decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
     return rawRows(XLSX.read(txt, { type: 'string' }));
   }
   return rawRows(XLSX.read(f.b64, { type: 'base64' }));
+}
+// Colunas da API ainda em validação (a exportação manual prevalece enquanto houver uma).
+// Quando a validação confirmar que batem, é só tirar o nome daqui.
+const CX_PREFERIR_EXPORTACAO = ['LTV Valor', 'LTV Tempo', 'Último MRR Ativo', 'Dias da última tarefa concluída', 'Responsável: Analista Principal'];
+
+// ===== Validação: compara, coluna a coluna, a tabela da API com a exportação manual (abra a página com ?validar=1) =====
+function validarCx(apiRows, compRows) {
+  const hA = apiRows[0].map(S), hi = findHeaderRow(compRows, 'carteira', 'cnpj/cpf'); if (hi < 0) return null;
+  const hC = compRows[hi].map(S);
+  const codRe = h => /^cod\.?\s*cliente$/i.test(h);
+  const iA = hA.findIndex(codRe), iC = hC.findIndex(codRe);
+  const cod = v => idKey(S(v).replace(/^emp[_\s-]*/i, '').trim());
+  const mapA = new Map(apiRows.slice(1).map(r => [cod(r[iA]), r]));
+  const mapC = new Map(); compRows.slice(hi + 1).forEach(r => { const k = cod((r || [])[iC]); if (k) mapC.set(k, r); });
+  const ambos = [...mapC.keys()].filter(k => mapA.has(k));
+  const serialIso = n => new Date(Math.round((n - 25569) * 864e5)).toISOString().slice(0, 10);
+  const norm = v => {
+    if (v == null) return ''; let s = String(v).trim(); if (!s) return '';
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/); if (m) return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    m = s.match(/^(\d{4}-\d{2}-\d{2})/); if (m) return m[1];
+    if (/^-?[\d.,]+$/.test(s)) { const n = parseNum(s, false); if (n != null) return String(Math.round(n * 100) / 100); }
+    if (s.includes(' | ') || s.includes(', ')) return s.split(/ \| |, /).map(x => x.trim().toLowerCase()).filter(Boolean).sort().join('|');
+    return s.toLowerCase();
+  };
+  const igual = (a, c) => { let x = norm(a), y = norm(c);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(x) && /^\d{5}(\.\d+)?$/.test(y)) y = serialIso(Number(y));
+    if (/^\d{4}-\d{2}-\d{2}$/.test(y) && /^\d{5}(\.\d+)?$/.test(x)) x = serialIso(Number(x));
+    return x === y; };
+  const linhas = hC.map((h, j) => {
+    if (!h) return null; const i = hA.findIndex(x => x.toLowerCase() === h.toLowerCase());
+    if (i < 0) return { col: h, status: 'falta na API', ig: 0, dif: 0, ex: '' };
+    let ig = 0, dif = 0, ex = '';
+    ambos.forEach(k => { const a = mapA.get(k)[i], c = mapC.get(k)[j]; if (igual(a, c)) ig++; else { dif++; if (!ex) ex = `${k}: API “${S(a) || '(vazio)'}” × exportação “${S(c) || '(vazio)'}”`; } });
+    return { col: h, status: dif === 0 ? 'ok' : (ig / (ig + dif) >= 0.98 ? 'quase' : 'diferente'), ig, dif, ex };
+  }).filter(Boolean);
+  return { linhas, ambos: ambos.length, soApi: [...mapA.keys()].filter(k => !mapC.has(k)).length, soExp: [...mapC.keys()].filter(k => !mapA.has(k)).length };
+}
+function mostrarValidacao(v) {
+  let box = document.getElementById('validacao');
+  if (!box) { box = document.createElement('div'); box.id = 'validacao'; box.style.cssText = 'margin-top:14px;overflow-x:auto'; document.getElementById('status').after(box); }
+  if (!v) { box.textContent = 'Validação: não há exportação manual para comparar.'; return; }
+  const cor = { ok: 'var(--accent, #3fb950)', quase: '#d29922', diferente: '#f85149', 'falta na API': '#f85149' };
+  const ordem = { 'falta na API': 0, diferente: 1, quase: 2, ok: 3 };
+  const lin = v.linhas.slice().sort((a, b) => ordem[a.status] - ordem[b.status]);
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  box.innerHTML = `<p><strong>Validação API × exportação</strong> · ${v.ambos} clientes nas duas · ${v.soApi} só na API · ${v.soExp} só na exportação · ${v.linhas.filter(l => l.status === 'ok').length} de ${v.linhas.length} colunas idênticas</p>
+  <table style="border-collapse:collapse;font-size:12px;width:100%"><tr><th style="text-align:left;padding:4px">Coluna</th><th style="text-align:left;padding:4px">Resultado</th><th style="padding:4px">Iguais</th><th style="padding:4px">Diferentes</th><th style="text-align:left;padding:4px">Exemplo de diferença</th></tr>
+  ${lin.map(l => `<tr style="border-top:1px solid rgba(128,128,128,.25)"><td style="padding:4px">${esc(l.col)}</td><td style="padding:4px;color:${cor[l.status]}">${l.status}</td><td style="padding:4px;text-align:right">${l.ig}</td><td style="padding:4px;text-align:right">${l.dif}</td><td style="padding:4px">${esc(l.ex)}</td></tr>`).join('')}</table>`;
+}
+
+// Junta à tabela da API do CustomerX as colunas que só existem na exportação manual
+// (HS, NPS Score, MRR, dias da última tarefa…), casando pelo código do cliente.
+function complementarCx(apiRows, compRows) {
+  const hA = apiRows[0].map(S), temA = new Set(hA.map(h => h.toLowerCase()));
+  const hi = findHeaderRow(compRows, 'carteira', 'cnpj/cpf'); if (hi < 0) return apiRows;
+  const hC = compRows[hi].map(S);
+  const iCodA = hA.findIndex(h => /^cod\.?\s*cliente$/i.test(h)), iCodC = hC.findIndex(h => /^cod\.?\s*cliente$/i.test(h));
+  if (iCodA < 0 || iCodC < 0) return apiRows;
+  const faltam = hC.map((h, j) => [h, j]).filter(([h]) => h && !temA.has(h.toLowerCase()));
+  // colunas que a API já traz mas ainda estão em validação: o valor da exportação prevalece quando existir
+  const pref = hA.map((h, i) => [i, hC.findIndex(x => x.toLowerCase() === h.toLowerCase())])
+    .filter(([i, j]) => j >= 0 && CX_PREFERIR_EXPORTACAO.some(n => n.toLowerCase() === hA[i].toLowerCase()));
+  const cod = v => idKey(S(v).replace(/^emp[_\s-]*/i, '').trim());
+  const porCod = new Map(); for (let i = hi + 1; i < compRows.length; i++) { const r = compRows[i] || []; const k = cod(r[iCodC]); if (k && !porCod.has(k)) porCod.set(k, r); }
+  return [[...hA, ...faltam.map(([h]) => h)], ...apiRows.slice(1).map(r => {
+    const c = porCod.get(cod(r[iCodA])); const out = [...r];
+    if (c) pref.forEach(([i, j]) => { if (S(c[j]) !== '') out[i] = c[j]; });
+    return [...out, ...faltam.map(([, j]) => c && c[j] !== undefined ? c[j] : '')];
+  })];
 }
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const rotuloPeriodo = per => { const [a, m] = per.split('-'); return `Fim de ${MESES[+m - 1]}/${a}`; };
@@ -606,15 +676,23 @@ async function chamarWebApp(params) {
 function resumoStatus(st) {
   if (!st) return '';
   const p = [];
-  if (st.meta) p.push(st.meta.erro ? `⚠ Metabase falhou em ${st.meta.erro_em}` : `Metabase de ${st.meta.atualizado_em}`);
-  if (st.cx) p.push(st.cx.erro ? `⚠ CustomerX: ${st.cx.erro}` : `CustomerX de ${st.cx.arquivo_de || st.cx.atualizado_em}`);
+  if (st.meta) p.push(st.meta.erro ? `⚠ Metabase falhou em ${st.meta.erro_em}` : `Metabase de ${st.meta.arquivo_de || st.meta.atualizado_em}`);
+  if (st.cx) p.push(st.cx.erro ? `⚠ CustomerX: ${st.cx.erro}` : st.cx.origem === 'API'
+    ? `CustomerX (API) de ${st.cx.arquivo_de || st.cx.atualizado_em}${st.cx.clientes_com_falha ? ` · ⚠ ${st.cx.clientes_com_falha} clientes com indicador faltando` : ''}${st.cx.complemento_de ? ` · colunas em validação da exportação de ${st.cx.complemento_de}` : ''}`
+    : `CustomerX de ${st.cx.arquivo_de || st.cx.atualizado_em}`);
   return p.join(' · ');
 }
 async function carregarPeriodo(per) {
   $('#status').textContent = per === 'atual' ? 'Buscando os dados mais recentes no Drive…' : `Buscando ${rotuloPeriodo(per).toLowerCase()}…`;
   $('#status').className = '';
   const d = await chamarWebApp('periodo=' + encodeURIComponent(per));
-  const t = montarTabelas(rowsFromB64(d.meta), rowsFromB64(d.cx));
+  let cxRows = rowsFromB64(d.cx);
+  if (d.cx.ext === 'json' && d.cxComp) {
+    const comp = rowsFromB64(d.cxComp);
+    if (new URLSearchParams(location.search).has('validar')) mostrarValidacao(validarCx(cxRows, comp));
+    cxRows = complementarCx(cxRows, comp);
+  } else if (new URLSearchParams(location.search).has('validar')) mostrarValidacao(null);
+  const t = montarTabelas(rowsFromB64(d.meta), cxRows);
   ALL = buildAccounts(t.cxRows, t.metaRows);
   const par = t.semPar ? `${t.semPar} de ${t.total} empresas da Meta sem par na Exportação` : 'todos os CNPJs da Meta localizados na Exportação';
   const fonte = per === 'atual' ? 'Drive (automático)' : `Drive · ${rotuloPeriodo(per)}`;
