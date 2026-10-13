@@ -19,7 +19,7 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em;font-weight:700;color:var
 .loader button,.loader label.btn{padding:8px 16px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer}.loader button:hover{background:var(--ac2)}
 .loader label.btn{background:var(--card);color:var(--ac)}.loader label.btn:hover{background:var(--acbg)}.loader input[type=file]{display:none}.loader select{padding:8px 10px;border:1px solid var(--bd2);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}
 #theme{margin-left:auto;background:var(--card);color:var(--tx);border:1px solid var(--bd2);font-weight:500}
-.loader small{color:var(--mut)}#status{font-size:12.5px;color:var(--mut)}#status.err{color:var(--rk)}#status.ok{color:var(--ac)}
+[hidden]{display:none!important}.loader small{color:var(--mut)}#status{font-size:12.5px;color:var(--mut)}#status.err{color:var(--rk)}#status.ok{color:var(--ac)}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:6px}.topbar img{height:40px;flex:none;margin-top:4px}
 .tagline{color:var(--mut);font-size:13px}.tagline b{color:var(--ac2)}
 .pills{height:4px;margin:14px 0 4px;background:linear-gradient(90deg,var(--ac) 0 60%,#12B8A2 60% 80%,#7C5CE6 80%);border-radius:2px}
@@ -60,6 +60,7 @@ dialog{border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 24px -2px 
 <div class="loader">
   <div class="row"><input type="text" id="gurl" placeholder="Link da Planilha Google com as abas Tabela Cx e Tabela Meta"><button id="gload">Carregar da Google Sheets</button><label class="btn">Subir os 2 arquivos .xlsx<input type="file" id="file" accept=".xlsx,.xls,.csv" multiple></label></div>
   <div class="row"><label for="csm">Carteira (CSM):</label><select id="csm"><option>—</option></select><button id="theme" type="button" title="Alternar tema">🌙 Modo escuro</button><small>Envie os 2 arquivos crus: o que começa com <b>empresas_elite___cadastro</b> (dados Meta) e o que começa com <b>Exportação de Clientes (Completa)</b> (dados CSM). Pode selecionar os dois de uma vez. Valem só para o seu navegador.</small></div>
+  <div class="row" id="autoRow" hidden><label for="periodo">Dados de:</label><select id="periodo"><option value="atual">Hoje</option></select><span id="tokenBox" hidden><input type="password" id="wtoken" placeholder="Código de acesso" style="min-width:200px"> <button id="wtokenOk" type="button">Conectar</button></span></div>
   <p class="hint">Clique em qualquer célula, fatia ou barra para ver a lista de clientes daquele recorte.</p>
   <div id="status">Suba os 2 arquivos crus (empresas_elite___cadastro + Exportação de Clientes) ou cole o link da planilha para começar.</div>
 </div>
@@ -78,6 +79,9 @@ const DEFAULT_SHEET = '';
 // Limites de cor: armazenamento acima de ARM_RED % fica vermelho; API abaixo de API_RED % vermelha, até API_GREEN % amarela, acima verde.
 const ARM_RED = 90, API_RED = 80, API_GREEN = 90;
 const DEFAULT_FILES = ['dados.xlsx'];
+// Dados automáticos (Google Drive): cole aqui o link do App da Web do Apps Script (termina em /exec).
+// O código de acesso NÃO vai aqui: cada pessoa digita uma vez na página e ele fica salvo no navegador dela.
+const WEBAPP_URL = 'https://script.google.com/a/macros/bling.com.br/s/AKfycbzDURj5Ig9IQQlQBmzmnJ43SIQsVINBynp-XV2qkkx81rG_QzTR6uVq5sDyd0bLjQdNWQ/exec';
 </script>
 <script>
 // ===== Motor de dados: transforma as abas "Tabela Cx" e "Tabela Meta" em contas tratadas =====
@@ -561,7 +565,72 @@ async function loadGoogle(url) {
   if (!ok) throw new Error('Não consegui ler a planilha. Verifique: (1) o arquivo é uma Planilha Google (não .xlsx no Drive — abra e use Arquivo › Salvar como Planilhas Google); (2) está compartilhado como "Qualquer pessoa com o link pode ver"; (3) as abas se chamam "Tabela Cx" e "Tabela Meta".');
   loadWorkbook(wb, 'Google Sheets');
 }
-function fail(e) { $('#status').textContent = e.message || String(e); $('#status').className = 'err'; }
+// ===== Dados automáticos do Google Drive (Apps Script) =====
+function jsonp(url, ms = 90000) {
+  return new Promise((resolve, reject) => {
+    const cb = 'autoCb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+    const s = document.createElement('script');
+    const fim = () => { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); };
+    const t = setTimeout(() => { fim(); reject(new Error('O serviço de dados não respondeu. Tente de novo em instantes.')); }, ms);
+    window[cb] = d => { fim(); resolve(d); };
+    s.onerror = () => { fim(); reject(new Error('Não consegui acessar o serviço de dados. Confira o WEBAPP_URL e se o App da Web está implantado com acesso para "Qualquer pessoa".')); };
+    s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    document.body.appendChild(s);
+  });
+}
+function rowsFromB64(f) {
+  const bin = atob(f.b64);
+  if (f.ext === 'csv') {
+    const txt = new TextDecoder('utf-8').decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+    return rawRows(XLSX.read(txt, { type: 'string' }));
+  }
+  return rawRows(XLSX.read(f.b64, { type: 'base64' }));
+}
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const rotuloPeriodo = per => { const [a, m] = per.split('-'); return `Fim de ${MESES[+m - 1]}/${a}`; };
+function pedirToken(msg) {
+  $('#tokenBox').hidden = false; $('#wtoken').focus();
+  $('#status').textContent = msg || 'Digite o código de acesso para carregar os dados automáticos (fica salvo neste navegador).';
+  $('#status').className = '';
+}
+async function chamarWebApp(params) {
+  const tok = localStorage.getItem('wtoken');
+  if (!tok) { pedirToken(); throw null; }
+  const d = await jsonp(`${WEBAPP_URL}?token=${encodeURIComponent(tok)}&${params}`);
+  if (!d || !d.ok) {
+    if (d && d.erro === 'token') { localStorage.removeItem('wtoken'); pedirToken('Código de acesso inválido. Digite novamente.'); throw null; }
+    throw new Error('Serviço de dados: ' + ((d && d.mensagem) || 'resposta inválida.'));
+  }
+  return d;
+}
+function resumoStatus(st) {
+  if (!st) return '';
+  const p = [];
+  if (st.meta) p.push(st.meta.erro ? `⚠ Metabase falhou em ${st.meta.erro_em}` : `Metabase de ${st.meta.atualizado_em}`);
+  if (st.cx) p.push(st.cx.erro ? `⚠ CustomerX: ${st.cx.erro}` : `CustomerX de ${st.cx.arquivo_de || st.cx.atualizado_em}`);
+  return p.join(' · ');
+}
+async function carregarPeriodo(per) {
+  $('#status').textContent = per === 'atual' ? 'Buscando os dados mais recentes no Drive…' : `Buscando ${rotuloPeriodo(per).toLowerCase()}…`;
+  $('#status').className = '';
+  const d = await chamarWebApp('periodo=' + encodeURIComponent(per));
+  const t = montarTabelas(rowsFromB64(d.meta), rowsFromB64(d.cx));
+  ALL = buildAccounts(t.cxRows, t.metaRows);
+  const par = t.semPar ? `${t.semPar} de ${t.total} empresas da Meta sem par na Exportação` : 'todos os CNPJs da Meta localizados na Exportação';
+  const fonte = per === 'atual' ? 'Drive (automático)' : `Drive · ${rotuloPeriodo(per)}`;
+  finishLoad(fonte, true, [par, per === 'atual' ? resumoStatus(d.status) : ''].filter(Boolean).join(' · '));
+}
+async function iniciarAuto() {
+  $('#autoRow').hidden = false;
+  const d = await chamarWebApp('acao=lista');
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const sel = $('#periodo');
+  sel.innerHTML = '<option value="atual">Hoje (mais recente)</option>' +
+    (d.periodos || []).filter(p => p !== mesAtual).map(p => `<option value="${p}">${rotuloPeriodo(p)}</option>`).join('');
+  $('#tokenBox').hidden = true;
+  await carregarPeriodo('atual');
+}
+function fail(e) { if (e === null) return; $('#status').textContent = e.message || String(e); $('#status').className = 'err'; }
 
 async function loadRepoFile(name) {
   const r = await fetch(name + '?_=' + Date.now()); if (!r.ok) throw new Error('sem ' + name);
@@ -596,6 +665,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.target.value = '';
   };
   $('#csm').onchange = () => { localStorage.setItem('csm', $('#csm').value); render(); };
+  // Dados automáticos (Drive) têm prioridade quando WEBAPP_URL está preenchido
+  if (typeof WEBAPP_URL !== 'undefined' && WEBAPP_URL && !p.get('sheet')) {
+    if (p.get('token')) { localStorage.setItem('wtoken', p.get('token')); p.delete('token'); history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '')); }
+    $('#wtokenOk').onclick = () => { const v = $('#wtoken').value.trim(); if (!v) return; localStorage.setItem('wtoken', v); $('#wtoken').value = ''; iniciarAuto().catch(fail); };
+    $('#wtoken').onkeydown = ev => { if (ev.key === 'Enter') $('#wtokenOk').click(); };
+    $('#periodo').onchange = () => carregarPeriodo($('#periodo').value).catch(fail);
+    iniciarAuto().catch(fail);
+    return;
+  }
   // Ordem: ?sheet= na URL › DEFAULT_SHEET › dados.xlsx no repositório › último link usado neste navegador
   const fixed = p.get('sheet') || (typeof DEFAULT_SHEET !== 'undefined' && DEFAULT_SHEET) || '';
   if (fixed) { $('#gurl').value = fixed; $('#status').textContent = 'Carregando…'; loadGoogle(fixed).catch(fail); return; }
