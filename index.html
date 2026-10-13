@@ -17,7 +17,7 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em;font-weight:700;color:var
 .loader{background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:var(--sh);padding:14px 18px;margin:14px 0 18px;display:grid;gap:10px}
 .loader .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.loader input[type=text]{flex:1;min-width:240px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}
 .loader button,.loader label.btn{padding:8px 16px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer}.loader button:hover{background:var(--ac2)}
-.loader label.btn{background:var(--card);color:var(--ac)}.loader label.btn:hover{background:var(--acbg)}.loader input[type=file]{display:none}.loader select{padding:8px 10px;border:1px solid var(--bd2);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}
+.loader label.btn{background:var(--card);color:var(--ac)}.loader label.btn:hover{background:var(--acbg)}.loader input[type=file]{display:none}.loader select{padding:8px 10px;border:1px solid var(--bd2);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}.heatctl select{padding:6px 10px;margin-left:6px;border:1px solid var(--bd2);border-radius:8px;background:var(--input);color:var(--tx);font:inherit}.heatctl label{color:var(--mut)}
 #theme{margin-left:auto;background:var(--card);color:var(--tx);border:1px solid var(--bd2);font-weight:500}
 [hidden]{display:none!important}.loader small{color:var(--mut)}#status{font-size:12.5px;color:var(--mut)}#status.err{color:var(--rk)}#status.ok{color:var(--ac)}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:6px}.topbar img{height:40px;flex:none;margin-top:4px}
@@ -359,11 +359,12 @@ function stack(rows) {
   return rows.map(r => { const n = sum(r.parts, p => p.count); return `<div class="sb"><div class="sl">${esc(r.label)}<small>n=${n}</small></div><div class="sbar">${r.parts.filter(p => p.count).map(p => `<i ${p.acc ? `data-l="${reg(r.label + ' · ' + p.label, p.acc)}" class="ck"` : ''} style="flex:${p.count};background:${p.color}" title="${esc(p.label)}: ${p.count} · ${pct(p.count, n)}">${p.count / n < 0.12 ? p.count : p.count + ' · ' + pct(p.count, n)}</i>`).join('')}</div><div class="mut">${r.extra || ''}</div></div>`; }).join('');
 }
 function barList(items, fmt) { const mx = Math.max(...items.map(i => i.value), 1); return `<div class="bl">${items.map(i => `<div class="blr ${i.acc ? 'ck' : ''}" ${i.acc ? `data-l="${reg(i.label, i.acc)}"` : ''}><span>${esc(i.label)}</span><div class="blb"><i style="width:${100 * i.value / mx}%;background:${i.color}"></i></div><b>${fmt(i.value)}</b></div>`).join('')}</div>`; }
-function heat(groups, indicators) {
+function heat(groups, indicators, totalAcc) {
+  totalAcc = totalAcc || ACC;
   // groups: [{label, acc}], indicators: [{name, f}] with f(acc) -> 1/0/null
   const th = groups.map(g => `<th>${esc(g.short || g.label)}<span>n=${g.acc.length}</span></th>`).join('');
-  const rows = indicators.map(ind => { const cells = [...groups, { label: 'Total', acc: ACC }].map(g => { const n = cnt(g.acc, ind.f), x = sum(g.acc, ind.f); if (!n) return '<td class="hm"><span>–</span></td>'; const p = x / n; const li = reg(`${ind.name} · ${g.short || g.label}`, g.acc.filter(a => ind.f(a) === 1)); const rgb = ind.tone === 'red' ? '240,81,67' : '52,173,97'; return `<td class="hm ck" data-l="${li}" style="background:rgba(${rgb},${(0.08 + 0.45 * p).toFixed(2)})">${x}/${n}<span>${pct(x, n)}</span></td>`; }).join(''); return `<tr><td>${esc(ind.name)}</td>${cells}</tr>`; }).join('');
-  return `<div class="tw"><table class="mx"><thead><tr><th>Indicador</th>${th}<th>Total<span>n=${ACC.length}</span></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const rows = indicators.map(ind => { const cells = [...groups, { label: 'Total', acc: totalAcc }].map(g => { const n = cnt(g.acc, ind.f), x = sum(g.acc, ind.f); if (!n) return '<td class="hm"><span>–</span></td>'; const p = x / n; const li = reg(`${ind.name} · ${g.short || g.label}`, g.acc.filter(a => ind.f(a) === 1)); const rgb = ind.tone === 'red' ? '240,81,67' : '52,173,97'; return `<td class="hm ck" data-l="${li}" style="background:rgba(${rgb},${(0.08 + 0.45 * p).toFixed(2)})">${x}/${n}<span>${pct(x, n)}</span></td>`; }).join(''); return `<tr><td>${esc(ind.name)}</td>${cells}</tr>`; }).join('');
+  return `<div class="tw"><table class="mx"><thead><tr><th>Indicador</th>${th}<th>Total<span>n=${totalAcc.length}</span></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function matrix(rowGroups, colGroups, rowLabel) {
   const th = colGroups.map(c => `<th>${esc(c.label)}</th>`).join('');
@@ -389,6 +390,23 @@ const EXP_IND = [
   { name: 'Sem e-commerce → Bling Loja Virtual', f: a => 1 - a.temEcom }, { name: 'E-commerce sem nenhuma logística → Bling Envios', f: a => a.temEcom && a.naMeta ? (a.nLog ? 0 : 1) : null },
   { name: 'E-commerce só com logística de marketplace → Bling Envios', f: a => a.temEcom && a.naMeta ? (a.nLog && !a.logPropria ? 1 : 0) : null }];
 
+// Seletores dos mapas de Riscos e de Expansão: ver por IF ou por Faixa, todos ou um só
+const HV = { risco: { by: 'IF', sel: '' }, exp: { by: 'IF', sel: '' } };
+document.addEventListener('change', e => {
+  const t = e.target.closest('[data-hv]'); if (!t) return;
+  const v = HV[t.dataset.hv]; v[t.dataset.k] = t.value; if (t.dataset.k === 'by') v.sel = '';
+  const y = window.scrollY; render(); window.scrollTo(0, y);
+});
+function heatCtl(view, groupsIF, groupsFx) {
+  const v = HV[view], gs = v.by === 'IF' ? groupsIF : groupsFx;
+  const id = g => String(g.key);
+  if (v.sel && !gs.some(g => id(g) === v.sel)) v.sel = '';
+  const opts = gs.map(g => `<option value="${esc(id(g))}"${id(g) === v.sel ? ' selected' : ''}>${esc(g.label)}</option>`).join('');
+  const html = `<div class="heatctl" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:4px 0 12px">
+    <label>Ver por: <select data-hv="${view}" data-k="by"><option value="IF"${v.by === 'IF' ? ' selected' : ''}>IF</option><option value="Faixa"${v.by === 'Faixa' ? ' selected' : ''}>Faixa</option></select></label>
+    <label>Mostrar: <select data-hv="${view}" data-k="sel"><option value="">Todos</option>${opts}</select></label></div>`;
+  return { html, groups: v.sel ? gs.filter(g => id(g) === v.sel) : gs, by: v.by };
+}
 function render() {
   LISTS = [];
   const csm = $('#csm').value; ACC = csm === '__all__' ? ALL : ALL.filter(a => a.csm === csm);
@@ -453,14 +471,20 @@ function render() {
   h += `<p class="note">MRR, tickets, marketplaces, armazenamento, saúde da API e uso de API só existem na Tabela Meta e cobrem as ${sum(ACC, a => a.naMeta)} contas dessa tabela.</p>`;
 
   // 3. Riscos
-  h += `<h2>3. Riscos por IF</h2><p class="lead">Cada célula mostra quantas contas do IF têm o indicador sobre quantas têm dado para ele.</p>` + heat(ifPresent, RISK_IND);
-  const motivoPie = g => { const items = RISCOS.map(([k], i) => ({ label: k, value: sum(g.acc, a => a.riscos[k]), color: hue(i + 3), text: sum(g.acc, a => a.riscos[k]) + ' citações', acc: g.acc.filter(a => a.riscos[k]) })).filter(i => i.value).sort((a, b) => b.value - a.value); return items.length ? card('Motivos de risco · ' + g.key, `${g.acc.length} contas · uma conta pode citar mais de um motivo`, pie(items, 'Motivos ' + g.key)) : ''; };
+  const hr = heatCtl('risco', ifPresent, fxGroups);
+  h += `<h2>3. Riscos por ${hr.by === 'IF' ? 'IF' : 'faixa'}</h2><p class="lead">Cada célula mostra quantas contas do grupo têm o indicador sobre quantas têm dado para ele.</p>` + hr.html + heat(hr.groups, RISK_IND);
+  const motivoPie = g => { const items = RISCOS.map(([k], i) => ({ label: k, value: sum(g.acc, a => a.riscos[k]), color: hue(i + 3), text: sum(g.acc, a => a.riscos[k]) + ' citações', acc: g.acc.filter(a => a.riscos[k]) })).filter(i => i.value).sort((a, b) => b.value - a.value); const tit = g.key === 'IF0' ? 'Motivo do cancelamento · IF0' : 'Motivos de risco · ' + g.key; return items.length ? card(tit, `${g.acc.length} contas · uma conta pode citar mais de um motivo`, pie(items, g.key === 'IF0' ? 'Motivo do cancelamento IF0' : 'Motivos ' + g.key)) : ''; };
   const topIfs = ifPresent.filter(g => sum(g.acc, a => a.temMotivo) > 0);
   h += `<h3 class="sp">Motivos de risco por IF</h3><p class="lead">Um gráfico para cada IF que tem ao menos uma conta com motivo de risco.</p><div class="grid">${topIfs.map(motivoPie).join('')}</div>`;
   const semMotivo = ifPresent.filter(g => !sum(g.acc, a => a.temMotivo)); if (semMotivo.length) h += `<p class="note">Sem motivo de risco registrado: ${semMotivo.map(g => g.key).join(', ')}.</p>`;
 
   // 4. Expansão
-  h += `<h2>4. Oportunidades de expansão por IF</h2><p class="lead">A faixa Elite é de volume de pedidos. ${sum(comp, a => a.acimaFaixa)} de ${comp.length} contas têm volume acima do teto da faixa.</p>` + heat(ifPresent, EXP_IND);
+  // IF0 = cliente que cancelou: fica fora das oportunidades de expansão
+  const accExp = ACC.filter(a => a.IF !== 'IF0');
+  const fxExp = fxGroups.map(g => ({ ...g, acc: g.acc.filter(a => a.IF !== 'IF0') })).filter(g => g.acc.length);
+  const he = heatCtl('exp', ifPresent.filter(g => g.key !== 'IF0'), fxExp);
+  const compExp = comp.filter(a => a.IF !== 'IF0');
+  h += `<h2>4. Oportunidades de expansão por ${he.by === 'IF' ? 'IF' : 'faixa'}</h2><p class="lead">A faixa Elite é de volume de pedidos. ${sum(compExp, a => a.acimaFaixa)} de ${compExp.length} contas têm volume acima do teto da faixa. Clientes IF0 (cancelados) não entram aqui.</p>` + he.html + heat(he.groups, EXP_IND, accExp);
   const cobKeys = ['Sem e-commerce (oferta: Bling Loja Virtual)', 'E-commerce com logística além da de marketplace', 'E-commerce só com logística de marketplace (oferta: Bling Envios)', 'E-commerce sem logística (oferta: Bling Envios)', 'E-commerce sem dado de logística (só na Cx)'];
   const cobColor = ['#34AD61', '#8BE0AA', '#F5A60A', '#F05143', '#97A4B8'];
   const semEcom = ACC.filter(a => !a.temEcom).sort((a, b) => (b.gmv || 0) - (a.gmv || 0));
@@ -472,8 +496,6 @@ function render() {
   const fxPie = (title, sub, f, fmt) => card(title, sub, pie(fxGroups.map(g => ({ label: g.label, value: sum(g.acc, f), color: FX_COLOR[g.key], text: fmt(sum(g.acc, f)), acc: g.acc })), title));
   h += `<h2>6. Faixas Elite</h2><p class="lead">Faixa lida da tag (ex.: "Faixa 3 · 20 a 30 mil", que é volume de pedidos).</p><div class="grid">` + fxPie('Empresas por faixa Elite', `% das ${ACC.length} contas`, a => 1, v => v + ' emp.') + fxPie('GMV último mês por faixa', '% do GMV da carteira', a => a.gmv, fmtMi) + fxPie('Pedidos (média 3 meses) por faixa', '% do volume médio', a => a.media, v => fmtInt(v) + ' ped.') + fxPie('MRR por faixa', '% do MRR', a => a.mrr, fmtMil) + '</div>';
   h += `<h3 class="sp">Faixa × IF</h3>` + matrix(fxGroups, ifPresent.map(g => ({ label: g.key, acc: g.acc })), 'Faixa');
-  h += `<h3 class="sp">Riscos por faixa</h3>` + heat(fxGroups, RISK_IND);
-  h += `<h3 class="sp">Oportunidades de expansão por faixa</h3>` + heat(fxGroups, EXP_IND);
   const maisComum = groups => table(['Grupo', 'Emp.', 'Contas com motivo', 'Motivos mais comuns', 'Indicador de risco mais frequente'], groups.map(g => {
     const ms = RISCOS.map(([k]) => [k, g.acc.filter(a => a.riscos[k])]).filter(x => x[1].length).sort((a, b) => b[1].length - a[1].length);
     const ind = RISK_IND.map(i => [i.name, g.acc.filter(a => i.f(a) === 1)]).filter(x => x[1].length).sort((a, b) => b[1].length - a[1].length);
@@ -589,7 +611,7 @@ function rowsFromB64(f) {
 }
 // Colunas da API ainda em validação (a exportação manual prevalece enquanto houver uma).
 // Quando a validação confirmar que batem, é só tirar o nome daqui.
-const CX_PREFERIR_EXPORTACAO = ['LTV Valor', 'LTV Tempo', 'Último MRR Ativo', 'Dias da última tarefa concluída', 'Responsável: Analista Principal'];
+const CX_PREFERIR_EXPORTACAO = ['Último MRR Ativo', 'Dias da última tarefa concluída', 'Responsável: Analista Principal'];
 
 // ===== Validação: compara, coluna a coluna, a tabela da API com a exportação manual (abra a página com ?validar=1) =====
 function validarCx(apiRows, compRows) {
